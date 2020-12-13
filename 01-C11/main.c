@@ -13,11 +13,26 @@ void parseInput(char *filename)
     }
 
     char ch;
+    char cnumber[4];
+    int inumber;
+    int i = 0;
+
     while ((ch = fgetc(fp)) != EOF) {
         // print first number
-        printf("%c", ch);
         if (ch == '\n') break;
+        cnumber[i] = ch;
+        i++;
     }
+
+    cnumber[4] = '\0';
+
+    printf("First number of the list %s as a string\n", cnumber);
+
+    inumber = atoi(cnumber);
+
+    printf("First number of the list %i as an integer\n", inumber);
+
+
 
     fclose(fp);
 }
