@@ -1,5 +1,5 @@
 CC=gcc
-CXXFLAGS=-Wall -Wextra -std=c99 -pedantic
+CXXFLAGS=-Wall -Wextra -std=c99 -pedantic -Wunused-but-set-variable
 INPUTS=sample.txt input.txt
 
 .PHONY: test

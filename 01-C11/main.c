@@ -3,38 +3,26 @@
 
 void parseInput(char *filename)
 {
-    printf("Input filename: %s\n", filename);
-    // Open, Read and close the input file
-    FILE *fp;
+    int i = 0;
+    int numbers[999];
+    int number;
 
-    fp = fopen(filename, "r");
-    if (fp == NULL) {
+    // Open, Read and close the input file
+    FILE *file;
+
+    file = fopen(filename, "r");
+
+    if (file == NULL) {
         exit(-1);
     }
 
-    char ch;
-    char cnumber[4];
-    int inumber;
-    int i = 0;
-
-    while ((ch = fgetc(fp)) != EOF) {
-        // print first number
-        if (ch == '\n') break;
-        cnumber[i] = ch;
-        i++;
+    while ( fscanf(file, "%d", &number)!= EOF) {
+        numbers[i++] = number;
     }
 
-    cnumber[4] = '\0';
+    printf("We have at the moment %d numbers on %s", i, filename);
 
-    printf("First number of the list %s as a string\n", cnumber);
-
-    inumber = atoi(cnumber);
-
-    printf("First number of the list %i as an integer\n", inumber);
-
-
-
-    fclose(fp);
+    fclose(file);
 }
 
 int main(int argc, char *argv[])
