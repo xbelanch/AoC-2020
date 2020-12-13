@@ -39,7 +39,7 @@ int *parseInput(char *filename)
     return numbers;
 }
 
-void calculate(int *numbers)
+int getResult(int *numbers)
 {
     int len = 0;
 
@@ -47,24 +47,20 @@ void calculate(int *numbers)
 
     printf("We have %d numbers\n", len);
 
-    int found = 0;
     for (int i = 0; i < len; i++) {
         int entry1 = numbers[i];
         for (int j = 0; j < len; j++) {
-            if (!found) {
-                if (i != j) { // don't sum same entries of the list
-                    int entry2 = numbers[j];
-                    if (entry1 + entry2 == 2020) {
-                        printf("The two entries that sum to 2020 are %d and %d\n", entry1, entry2);
-                        printf("I get %d if I multiply them together\n", entry1 * entry2);
-                        found = 1;
-                    }
+            if (i != j) { // don't sum same entries of the list
+                int entry2 = numbers[j];
+                if (entry1 + entry2 == 2020) {
+                    printf("The two entries that sum to 2020 are %d and %d\n", entry1, entry2);
+                    return entry1 * entry2;
                 }
-            } else {
-                break;
             }
         }
     }
+
+    return -1; // no result
 }
 
 int main(int argc, char *argv[])
@@ -75,7 +71,7 @@ int main(int argc, char *argv[])
         numbers = parseInput(argv[i]);
     };
 
-    calculate(numbers);
+    printf("I get %d if I multiply them together\n", getResult(numbers));
 
     return 0;
 }
