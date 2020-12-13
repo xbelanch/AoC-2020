@@ -1,15 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int numbers[999];
-
-int parseInput(char *filename)
+int *parseInput(char *filename)
 {
+    int* numbers;
+    int* tmp;
     int i = 0;
     int number;
-    /* int* tmp; */
 
-    // Open, Read and close the input file
+    // allocate memory for array of numbers
+    numbers = (int*)malloc(sizeof(int) * 999);
+
+    // open, Read and close the input file
     FILE *file;
 
     file = fopen(filename, "r");
@@ -18,47 +20,62 @@ int parseInput(char *filename)
         exit(-1);
     }
 
+    // parse the numbers of the input text file
     while ( fscanf(file, "%d", &number)!= EOF) {
         numbers[i++] = number;
     }
 
-    // we remove all the null entries of the array
-    /* tmp = realloc(numbers, i*sizeof(int)); */
-    /* free(numbers); */
-    /* numbers = tmp; */
+    // reallocate the memory of the array of numbers
+    tmp = (int*)malloc(sizeof(int) * i);
+    for (int j = 0; j < i; j++) {
+        tmp[j] = numbers[j];
+    }
+
+    free(numbers);
+    numbers = tmp;
 
     fclose(file);
 
-    return i;
+    return numbers;
 }
 
-// Brute force!
-void calculateNumber(int length)
+void calculate(int *numbers)
 {
-    printf("We have at the moment %d numbers\n", length);
-    for (int i = 0; i < length; i++) {
-        int entry = numbers[i];
-        for (int j = 0; j < length ; j++) {
-            if ((entry + numbers[j]) == 2020 && (entry != numbers[j])) {
-                printf("The two entries that sum to 2020 are %d and %d\n", entry, numbers[j]);
-                printf("I get %d if I multiply them together\n", entry * numbers[j]);
+    int len = 0;
+
+    for (int i = 0; numbers[i] != '\0'; i++) len++;
+
+    printf("We have %d numbers\n", len);
+
+    int found = 0;
+    for (int i = 0; i < len; i++) {
+        int entry1 = numbers[i];
+        for (int j = 0; j < len; j++) {
+            if (!found) {
+                if (i != j) { // don't sum same entries of the list
+                    int entry2 = numbers[j];
+                    if (entry1 + entry2 == 2020) {
+                        printf("The two entries that sum to 2020 are %d and %d\n", entry1, entry2);
+                        printf("I get %d if I multiply them together\n", entry1 * entry2);
+                        found = 1;
+                    }
+                }
+            } else {
                 break;
             }
         }
     }
 }
 
-
 int main(int argc, char *argv[])
 {
-    int length;
+    int *numbers;
 
     for (int i = 1; i < argc; i++) {
-        length = parseInput(argv[i]);
+        numbers = parseInput(argv[i]);
     };
 
-    calculateNumber(length);
-
+    calculate(numbers);
 
     return 0;
 }
