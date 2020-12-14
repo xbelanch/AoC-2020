@@ -1,12 +1,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void parseInput(char* filename)
+int parseInput(char* filename)
 {
+    int lines = 0;
+    int valid = 0;
+    int i, repeat;
     int min, max;
-    char ch;
-    char str[100];
-    char pattern[256];
+    char letter;
+    char password[100];
+    char entry[256];
     FILE *file;
 
     if ((file = fopen(filename, "r")) == NULL) {
@@ -16,36 +19,33 @@ void parseInput(char* filename)
     // reads text until new line is encountered
     // https://medium.com/@zoha131/fun-with-scanf-in-c-3d7a8d310229
     // parse the numbers of the input text file
+    while ( fscanf(file, "%2d%*c%2d%*c%1c%*2c%s", &min, &max, &letter, password)!= EOF) {
+        lines++;
+        // Create the password entry only for testing purpose
+        snprintf(entry, 256, "%d-%d %c: %s", min, max, letter, password);
 
-    fscanf(file, "%1d%*c%1d%*c%1c%*2c%s", &min, &max, &ch, str);
+        // parse the password and count letter policy
+        i = repeat = 0;
+        while (password[i] != '\0') {
+            if (password[i] == letter) repeat++;
+            i++;
+        }
 
-    // Create the password pattern only for testing purpose
-    snprintf(pattern, 256, "%d-%d %c: %s", min, max, ch, str);
-
-    printf("Min: %d, Max: %d, Char: %c, String: %s\n", min, max, ch, str);
-
-    int counter = 0;
-    int repeated = 0;
-    while (str[counter] != '\0') {
-        printf("%c,", str[counter]);
-        if (str[counter] == ch) repeated++;
-        counter++;
+        // check if number policy letter repeated on password is valid according
+        // the min and max policy numbers
+        if (repeat >=min && repeat <= max) valid++;
     }
-
-    if (repeated >=min && repeated <= max) {
-        printf("Match!\n");
-    } else {
-        printf("Not matched: %s\n", pattern);
-    }
-
 
     fclose(file);
 
+    return valid;
 }
 
 
 int main(int argc, char *argv[])
 {
-    parseInput(argv[1]);
+    int valid = parseInput(argv[1]);
+    printf("Valid passwords: %d\n", valid);
+
     return 0;
 }
