@@ -25,15 +25,28 @@ int parseInput(char* filename)
         snprintf(entry, 256, "%d-%d %c: %s", min, max, letter, password);
 
         // parse the password and count letter policy
+        // Part One
+        /* i = repeat = 0; */
+        /* while (password[i] != '\0') { */
+        /*     if (password[i] == letter) repeat++; */
+        /*     i++; */
+        /* } */
+
+        /* // check if number policy letter repeated on password is valid according */
+        /* // the min and max policy numbers */
+        /* if (repeat >=min && repeat <= max) valid++; */
+
+        // Part two
         i = repeat = 0;
-        while (password[i] != '\0') {
-            if (password[i] == letter) repeat++;
+        while(password[i] != '\0') {
+            // Be careful! Toboggan Corporate Policies have no concept of "index zero"!
+            if (password[i] == letter && (i == (min - 1) || i == (max - 1))) {
+                repeat++;
+            }
             i++;
         }
 
-        // check if number policy letter repeated on password is valid according
-        // the min and max policy numbers
-        if (repeat >=min && repeat <= max) valid++;
+        if (repeat == 1) valid++;
     }
 
     fclose(file);
