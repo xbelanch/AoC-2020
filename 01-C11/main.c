@@ -39,6 +39,7 @@ int *parseInput(char *filename)
     return numbers;
 }
 
+// Brute force
 int getResult(int *numbers)
 {
     int len = 0;
@@ -62,6 +63,66 @@ int getResult(int *numbers)
 
     return -1; // no result
 }
+// Is really different from the brute force function?
+int getResultPartOne(int *numbers)
+{
+    int len = 0;
+    for (int i = 0; numbers[i] != '\0'; i++) len++;
+
+    for (int i = 1; i < len; i++) {
+        for (int j = len - 2; j >= 0 ; j--) {
+            if (numbers[i] + numbers[j] == 2020) {
+                printf("The two entries that sum to 2020 are %d and %d\n", numbers[i], numbers[j]);
+                return numbers[i] * numbers[j];
+            }
+        }
+    }
+
+    return -1;
+}
+
+
+/* int getResult3(int *numbers) */
+/* { */
+/*     int len = 0; */
+/*     for (int i = 0; numbers[i] != '\0'; i++) len++; */
+
+/*     // need to sort the numbers from low value to high value */
+
+/*     for (int i = 1; i < len; i++) { */
+/*         for (int j = len - 2; j >= 0 ; j--) { */
+/*             if (numbers[j] == 2020 - numbers[i]) { */
+/*                 printf("The two entries that sum to 2020 are %d and %d\n", numbers[i], numbers[j]); */
+/*                 return numbers[i] * numbers[j]; */
+/*             } */
+/*         } */
+/*     } */
+
+/*     return -1; */
+/* } */
+
+
+// Part two
+int getResultPartTwo(int *numbers)
+{
+    int len = 0;
+    for (int i = 0; numbers[i] != '\0'; i++) len++;
+
+    for (int i = 1; i < len; i++) {
+        for (int j = len - 2; j >= 0 ; j--) {
+            for (int k = 1; k < len; k++) {
+                if (numbers[i] + numbers[j] + numbers[k] == 2020) {
+                    printf("The three entries that sum to 2020 are %d, %d and %d\n", numbers[i], numbers[j], numbers[k]);
+                    return numbers[i] * numbers[j] * numbers[k];
+                }
+            }
+        }
+    }
+
+    return -1;
+}
+
+
 
 int main(int argc, char *argv[])
 {
@@ -71,7 +132,10 @@ int main(int argc, char *argv[])
         numbers = parseInput(argv[i]);
     };
 
-    printf("I get %d if I multiply them together\n", getResult(numbers));
+    /* printf("I get %d if I multiply them together\n", getResult(numbers)); */
+    printf("I get %d if I multiply them together\n", getResultPartOne(numbers));
+    printf("I get %d if I multiply them together\n", getResultPartTwo(numbers));
+    //    printf("I get %d if I multiply them together\n", getResult3(numbers));
 
     return 0;
 }
