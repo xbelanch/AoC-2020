@@ -2,25 +2,27 @@
 #include <stdio.h>
 
 #define PRINT(msg, pattern) printf(msg ": %s\n", pattern)
-#define MAXBUFFER 1024
+
+// Globals
+int buffersize = 0;
 
 char* repeatPattern(char* pattern, int times)
 {
-    char* buffer = malloc(sizeof(char) * MAXBUFFER);
-
     // get the length of pattern string
     int len = 0;
     for (int i = 0; pattern[i] != '\0'; i++) len++;
 
+    buffersize = len * times;
+
     // prevent buffer overflow
-    if ((len * times) >= MAXBUFFER) {
-        printf("Result is more than buffer can handle\n");
-        return -1;
-    }
+    char* buffer = malloc(sizeof(char) * buffersize);
+
+    // avoid stupidity
+    if (times == 0) times = 1;
 
     // duplicate n times pattern
     int end = 0;
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < times; i++) {
         for (int j = 0; j < len; j++) {
             buffer[(len * i) + j] = pattern[j];
             end++;
@@ -37,7 +39,7 @@ char* repeatPattern(char* pattern, int times)
 void parseInput(char* filename)
 {
     FILE* file;
-    char map[256][256];
+    char* map[1024];
 
     if ((file = fopen(filename, "r")) == NULL) {
         printf("ERROR:: opening file %s\n", filename);
@@ -46,54 +48,36 @@ void parseInput(char* filename)
 
     printf("File %s loaded\n", filename);
 
-    int j = 0;
-    char* row;
-    while (fscanf(file, "%s[^\n]", row) != EOF ) {
-        for (int z = 0; z < 2; z++) {
-            for (int i = 0; row[i] != '\0'; i++) {
-                map[j][i + (z * i)] = row[i];
-            }
-       }
-        j++;
-    }
-    for (int i = 0; i < 10; i++) {
-        printf("%s\n", map[i]);
+    int row = 0;
+    char* pattern = malloc(sizeof(char) * 128);
+    // Store the input data
+    while (fscanf(file, "%s", pattern) != EOF ) {
+        // 323 : total of lines of input text
+        // we need to solve this before
+        map[row++] = repeatPattern(pattern, 323);
     }
 
-    // testing with the first line
-    /* char* row = malloc(sizeof(char) * 128); */
-    /* int posX = 3; */
-    /* int posY = 0; */
-    /* int trees = 0; */
-    /* while (fscanf(file, "%s[^\n]", row) != EOF) { */
-    /*     if (posY > 0) { */
-    /*         if ( row[posX] != NULL ) { */
+    printf("Total of lines: %d\n", row);
 
-    /*             if (row[posX] == '#') { */
-    /*                 row[posX] = 'X'; */
-    /*                 trees++; */
-    /*             } else { */
-    /*                 row[posX] = 'O'; */
-    /*             } */
-    /*             posX += 3; */
+    // traverse the map and change the trees or open squares
+    // by X or O characters
+    int tree = 0;
+    int column = 3;
+    for (int i = 1; i < row; i++) {
+        if (map[i][column] == '#') {
+            // found a tree!
+            // map[i][column] = 'X';
+            tree++;
+        };
 
-    /*         } else { */
-    /*             break; */
-    /*         } */
-    /*     } */
-    /*     printf("%d%s\n", posY, row); */
-    /*     posY++; */
-    /* }; */
+        /* if (map[i][column] == '.') { */
+        /*     map[i][column] = 'O'; */
+        /* } */
+        column += 3;
+    }
 
-    /* printf("How many trees would you encounter? %d\n", trees); */
+    printf("How many trees would you encounter? %d\n", tree);
 
-
-    /* // Check how many trees are in that row */
-    /* int trees = 0; */
-    /* for (int i = 0; row[i] != '\0'; i++) { */
-    /*     if (row[i] == '#') trees++; */
-    /* } */
-    /* printf("Trees: %d\n", trees); */
 
     fclose(file);
 }
@@ -102,11 +86,7 @@ void parseInput(char* filename)
 int main(int argc, char *argv[])
 {
     if (argc > 0) {
-        char* pattern = "..##.......#";
-        PRINT("Original pattern", pattern);
-        char* result = repeatPattern(pattern, 4);
-        PRINT("Result pattern", result);
-        /* parseInput(argv[1]); */
+        parseInput(argv[1]);
     }
 
     return 0;
