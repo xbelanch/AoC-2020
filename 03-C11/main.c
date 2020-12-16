@@ -1,8 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define PRINT(msg, pattern) printf(msg ": %s\n", pattern)
-
 // Globals
 int buffersize = 0;
 
@@ -36,7 +34,7 @@ char* repeatPattern(char* pattern, int times)
 }
 
 
-void parseInput(char* filename)
+unsigned long parseInput(char* filename)
 {
     FILE* file;
     char* map[1024];
@@ -48,45 +46,59 @@ void parseInput(char* filename)
 
     printf("File %s loaded\n", filename);
 
-    int row = 0;
-    char* pattern = malloc(sizeof(char) * 128);
     // Store the input data
+    int row = 0;
+    int pattern_repeat = 256; // why I choose this number?
+    char* pattern = malloc(sizeof(char) * 512);
     while (fscanf(file, "%s", pattern) != EOF ) {
-        // 323 : total of lines of input text
-        // we need to solve this before
-        map[row++] = repeatPattern(pattern, 323);
+        map[row++] = repeatPattern(pattern, pattern_repeat);
     }
-
-    printf("Total of lines: %d\n", row);
 
     // traverse the map and change the trees or open squares
     // by X or O characters
     int tree = 0;
-    int column = 3;
-    for (int i = 1; i < row; i++) {
-        if (map[i][column] == '#') {
-            // found a tree!
-            // map[i][column] = 'X';
-            tree++;
-        };
+    int column = 0;
+    int right[5] ={1, 3, 5, 7, 1};
+    int down[5] ={1, 1, 1, 1, 2};
+    int solution[5];
 
-        /* if (map[i][column] == '.') { */
-        /*     map[i][column] = 'O'; */
-        /* } */
-        column += 3;
+    for (int k = 0; k < 5; k++) {
+        printf("Test for right: %d, down: %d\n", right[k], down[k]);
+        for (int i = 0; i < row; i = i + down[k]) {
+            /* printf("%s\n", map[i + down[k]]); */
+            if (map[i][column] == '#') {
+                tree++;
+            };
+            column += right[k];
+        }
+
+        // store how many trees encountered in that slope
+        solution[k] = tree;
+        printf("Trees encountered at slope %d: %d\n", k + 1, solution[k]);
+
+        // reset some variables
+        tree = 0;
+        column = 0;
     }
 
-    printf("How many trees would you encounter? %d\n", tree);
-
-
     fclose(file);
-}
 
+    // Part two solution
+    // FUCKING 64 bits!!!!!!
+    unsigned long partTwo = 1;
+    for (int i = 0; i < 5; i++) {
+        partTwo *= solution[i];
+    }
+    return partTwo;
+}
 
 int main(int argc, char *argv[])
 {
     if (argc > 0) {
-        parseInput(argv[1]);
+        for (int i = 1; i < argc; i++) {
+            unsigned long solutionPartTwo = parseInput(argv[i]);
+            printf("Answer part two: %ld\n", solutionPartTwo);
+        }
     }
 
     return 0;
