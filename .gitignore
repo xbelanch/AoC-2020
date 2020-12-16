@@ -1,3 +1,7 @@
 *~
 *.exe
 *.stackdump
+*.#*
+GPATH
+GRTAGS
+GTAGS
