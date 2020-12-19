@@ -1,54 +1,36 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
-#define MAXLINEBUFFER 2048
-#define log(string) printf("> %s", string)
+#define MAXBUFFER 2048
 
-typedef struct passport {
-    int byr;
-    int iyr;
-    int eyr;
-    int hgt;
-    char* hcl;
-    char* ecl;
-    unsigned long pid;
-    int cid;
-} Passport;
-
-Passport* newPassword() {
-    Passport* passport = malloc(sizeof(Passport));
-
-    passport->byr = -1;
-    passport->iyr = -1;
-    passport->eyr = -1;
-    passport->hgt = -1;
-    passport->hcl = NULL;
-    passport->ecl = NULL;
-    passport->pid = 0;
-    passport->cid = -1;
-
-    return passport;
-}
-
+// https://stackoverflow.com/questions/35178520/how-to-read-parse-input-in-c-the-faq
 void parseInput(char* filename) {
-    printf("%s:\n", filename);
 
-    FILE* file = fopen(filename, "r");
-    char* line = malloc(sizeof(char) * MAXLINEBUFFER);
+    FILE* fp = fopen(filename, "rb");
 
-    int passports = 0;
-    while ( fgets(line, MAXLINEBUFFER, file) != NULL) {
-        // Check for dos and unix EOL format
-        // I'm not sure if this works under linux
-        if (line[0] != '\r' && line[0] != '\n') {
-            // log(line);
+    if (!fp)
+        fprintf(stderr, "Cannot open %s: %s\n", filename, strerror(errno));
+
+    char* buffer = malloc(sizeof(char) * MAXBUFFER);
+    int line = 0;
+    int newline = 0;
+
+    printf("Passport %d: \n", newline + 1);
+    while ( fgets(buffer, MAXBUFFER, fp) != NULL) {
+
+        if (buffer[0] == '\r' && buffer[1] == '\n' ) {
+            newline++;
+            printf("Passport %d: \n", newline + 1);
+            continue;
         } else {
-            passports++;
+            printf("%d>%s", line, buffer);
+            line++;
         }
     }
-    passports++; // count EOL as the last password of the input file
-    printf("Number of passports: %d\n", passports);
+
+    fclose(fp);
 }
 
 int main(int argc, char *argv[])
