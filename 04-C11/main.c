@@ -37,11 +37,24 @@ int validate(char *field, char *value)
         // check first if cm or in is on it
         int len = strlen(value);
         const char *last_two = &value[len-2];
-        if (!strcmp("cm", last_two))  {
-            // remove the cm part
-            char *tmp = strchr(value, 'c');
-            *tmp = '\0';
-            height = atoi(value);
+
+        if (strcmp(last_two, "in") == 0) {
+            char *inches =  malloc(sizeof(char) * 3);
+            inches[3] = '\0';
+            int len = strcspn(value, "i");
+            strncpy(inches, value, len);
+            height = atoi(inches);
+            if (height >= 59 && height <= 76) {
+                return 1;
+            } else {
+                return 0;
+            }
+        } else if (strcmp(last_two, "cm") == 0) {
+            char *cm =  malloc(sizeof(char) * 3);
+            cm[3] = '\0';
+            int len = strcspn(value, "i");
+            strncpy(cm, value, len);
+            height = atoi(cm);
             if (height >= 150 && height <= 193) {
                 return 1;
             } else {
@@ -51,19 +64,6 @@ int validate(char *field, char *value)
             return 0;
         }
 
-        if (!strcmp("in", last_two)) {
-            // remove the in part
-            char *tmp = strchr(value, 'i');
-            *tmp = '\0';
-            height = atoi(value);
-            if (height >= 59 && height <= 76) {
-                return 1;
-            } else {
-                return 0;
-            }
-        } else {
-            return 0;
-        }
     } else if (strcmp(field, "hcl") == 0) {
         if (value[0] != '#') {
             return 0;
@@ -172,15 +172,19 @@ int parseInputDayOne(char* filename) {
     free(tmpBuffer);
 
     int validPassports = 0;
+    int flagErrorValue = 0;
+    char *pair;
+    char *ptr;
+    char pairs[32][64];
+
     for (int i = 0; i < id; i++) {
         printf("%d>%s\n", i, passports[i]);
 
-        // get fields and validate
-        char *pair;
-        char *ptr;
+        int idx = 0;
         int len = 0;
         int tmp = 0;
         int sum = 0;
+        // get fields and validate
         // extract pairs from every passport entry
         for (;;) {
             ptr = passports[i] + tmp; //
@@ -195,18 +199,51 @@ int parseInputDayOne(char* filename) {
 
             strncpy(pair, ptr, len);
 
-            // validate field
-            char *field = malloc(sizeof(char) * 3);
-            field[3] = '\0';
-            strncpy(field, pair, 3);
-            /* printf(">%s\n", field); */
-            sum += validateField(field);
+            pairs[idx][len] = '\0';
+            strncpy(pairs[idx], ptr, len);
+            idx++;
 
             tmp++;
         }
+
+        for (int j = 0; j < idx; j++) {
+            // validate field
+            char *field = malloc(sizeof(char) * 3);
+            field[3] = '\0';
+            strncpy(field, pairs[j], 3);
+            /* printf(">%s\n", field); */
+            sum += validateField(field);
+        }
+
+        /* if passport is valid, check values */
         if (sum > 6) {
             printf("Passport fields are valid\n");
-            validPassports++;
+            printf("Part Two: validate values\n");
+
+            for (int j = 0; j < idx; j++) {
+                // get field
+                char* field = malloc(sizeof(char) * 3);
+                field[3] = '\0';
+                strncpy(field, pairs[j], 3);
+                // get value
+                len = strcspn(pairs[j] + 4, "\0");
+                char *value = malloc(sizeof(char) * len);
+                value[len] = '\0';
+                strncpy(value, pairs[j] + 4, len);
+                printf(">field: %s : value: %s\n", field, value);
+
+                if (validate(field, value)) {
+                    printf("value %s is valid\n", value);
+                } else {
+                    printf("value %s is NOT valid\n", value);
+                    flagErrorValue = 1;
+                }
+            }
+            if (!flagErrorValue)
+                validPassports++;
+
+            flagErrorValue = 0;
+
         } else {
             printf("Passport fields are NOT valid\n");
         }
@@ -216,54 +253,8 @@ int parseInputDayOne(char* filename) {
 
     printf("Valid passports: %d\n", validPassports);
 
-    /* while ( fgets(buffer, MAXBUFFER, fp) != NULL) { */
-
-    /*     if (buffer[0] != '\r' && buffer[1] != '\n' ) { */
-    /*         // Truncate lines */
-    /*         passports[newline] = malloc(sizeof(char) * 256); */
-    /*         /\* for (char *p = strtok(buffer, "\r\n"); p; p = strtok(NULL, "\r\n")) { *\/ */
-    /*                 /\* for (char *r = strtok(q, " "); r; r = strtok(NULL, " ")) { *\/ */
-    /*                 /\*     // get the field *\/ */
-    /*                 /\*     char* field = malloc(sizeof(char) * 3); *\/ */
-    /*                 /\*     strncpy(field, r, 3); *\/ */
-    /*                 /\*     /\\* printf("Field: %s\n", field); *\\/ *\/ */
-
-    /*                 /\*     // get the value *\/ */
-    /*                 /\*     char *tmp = strchr(r, ':'); *\/ */
-    /*                 /\*     char *value = malloc(sizeof(char) * 16); *\/ */
-    /*                 /\*     memcpy(value, tmp + 1, 16); *\/ */
-
-    /*                 /\*     // Validate if all the fields are present on passport *\/ */
-    /*                 /\*     cntflds += validateField(field); *\/ */
-
-    /*                 /\*     /\\* // Finally we validate every field depending on its value *\\/ *\/ */
-    /*                 /\*     if (!validate(field, value)) { *\/ */
-    /*                 /\*         notvalid = 1; *\/ */
-    /*                 /\*         break; *\/ */
-    /*                 /\*     } *\/ */
-    /*                 /\* } *\/ */
-    /*         /\* } *\/ */
-    /*     } else { */
-    /*         newline++; */
-    /*         printf("\nPassport %d:\n", newline); */
-    /*         // check if passport is valid at all */
-    /*         if (cntflds == 7 && !notvalid) valids++; */
-    /*         // reset temporal variables */
-    /*         cntflds = 0; */
-    /*         notvalid = 0; */
-    /*     } */
-    /* } */
-    // last passport of the input
-    /* if (cntflds == 7 && !notvalid) valids++; */
 
     fclose(fp);
-
-    /* printf("\nHow many passports parsed? %d\n", newline); */
-
-    /* // print passports */
-    /* for (int i = 0; i < newline; i++) { */
-    /*     printf("p%d> %s\n", i, passports[i]); */
-    /* } */
 
     return 0;
 }
@@ -271,8 +262,7 @@ int parseInputDayOne(char* filename) {
 int main(int argc, char *argv[])
 {
     for (int i = 1; i < argc; i++) {
-        int partTwo = parseInputDayOne(argv[i]);
-        /* printf("How of them are valid? %d\n", partTwo); */
+        parseInputDayOne(argv[i]);
     }
     return 0;
 }

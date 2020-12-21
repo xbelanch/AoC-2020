@@ -1,6 +1,6 @@
 CC=gcc
 CXXFLAGS=-Wall -Wextra -std=c11 -pedantic -Wunused-but-set-variable -Wunused-variable -Wunused-parameter -Wsizeof-pointer-div -Wunused-variable
-INPUT=test.txt input.txt
+INPUT=input.txt
 
 .PHONY: test
 
