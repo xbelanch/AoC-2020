@@ -9,7 +9,7 @@
 // sample: FBFBBFFRLR
 char* entries[2048];
 
-void parseEntry(char *entry) {
+int parseEntry(char *entry) {
     int row = 0;
     int column = 0;
 
@@ -27,11 +27,10 @@ void parseEntry(char *entry) {
         } else if (entry[i] == 'B') {
             minrange = round(minrange + (tmp / 2)) + 1;
         }
-        printf(">%c rows %d through %d\n", entry[i], minrange, maxrange);
+        /* printf(">%c rows %d through %d\n", entry[i], minrange, maxrange); */
     }
 
     if (minrange == maxrange) {
-        printf("row %d\n", minrange);
         row = minrange;
     } else {
         printf("Something went wrong!\n");
@@ -51,25 +50,30 @@ void parseEntry(char *entry) {
         } else if (entry[i] == 'R') {
             minrange = round(minrange + (tmp / 2)) + 1;
         }
-        printf(">%c rows %d through %d\n", entry[i], minrange, maxrange);
+        /* printf(">%c rows %d through %d\n", entry[i], minrange, maxrange); */
     }
 
     if (minrange == maxrange) {
-        printf("column %d\n", minrange);
         column = minrange;
     } else {
         printf("Something went wrong!\n");
     }
 
-    printf("The seat has ID %d\n", row * 8 + column);
-
+    /* printf("The seat has ID %d\n", row * 8 + column); */
+    return row * 8 + column;
 }
 
-void printEntries() {
+void partOne() {
+    int id = 0;
+    int highest_seat_id = 0;
     for (int i = 0; entries[i] != NULL; i++) {
-        printf("%d>%s\n", i, entries[i]);
-        parseEntry(entries[i]);
+        /* printf("%d>%s\n", i, entries[i]); */
+        id = parseEntry(entries[i]);
+        if (id > highest_seat_id)
+            highest_seat_id = id;
     }
+
+    printf("What is the highest seat ID on a boarding pass: %d\n", highest_seat_id);
 }
 
 void parseInput(char* filename) {
@@ -78,13 +82,17 @@ void parseInput(char* filename) {
     char *fileBuffer = malloc(sizeof(char) * MAXBUFFER);
 
     int line = 0;
+    int len = 0;
     while (fgets(fileBuffer, MAXBUFFER, fp) != NULL) {
-        entries[line] = malloc(sizeof(char) * 10);
+        len = strlen(fileBuffer);
+        fileBuffer[len - 1] = '\0'; // remove carriage return
+        entries[line] = malloc(sizeof(char));
         entries[line][0] = '\0';
         strcpy(entries[line], fileBuffer);
+        line++;
     }
 
-    printEntries();
+    partOne();
 
     free(fileBuffer);
     fclose(fp);
