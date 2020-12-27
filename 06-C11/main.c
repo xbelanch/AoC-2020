@@ -3,7 +3,7 @@
 #include <string.h>
 
 
-#define MAXLINEBUFFER 128
+#define MAXLINEBUFFER 512
 #define MAXGROUPS 512
 
 typedef struct inputFile {
