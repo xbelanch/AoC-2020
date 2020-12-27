@@ -4,7 +4,7 @@
 
 
 #define MAXLINEBUFFER 512
-#define MAXGROUPS 512
+#define MAXGROUPS 1024
 
 typedef struct inputFile {
     int lines;
@@ -13,11 +13,12 @@ typedef struct inputFile {
 
 typedef struct group {
     int people;
-    char *questions;
+    int start;
+    int end;
 } Group;
 
 InputFile g_inputFile;
-Group* g_groups[512];
+Group* g_groups[MAXGROUPS];
 
 void getInputData(char *filename)
 {
@@ -27,7 +28,6 @@ void getInputData(char *filename)
     // initialize
     g_inputFile.lines = 0;
     g_inputFile.input = NULL;
-
 
     // Count lines from file
     FILE *fp;
@@ -67,15 +67,12 @@ void getInputData(char *filename)
     fclose(fp);
 }
 
-void createGroup(int people, char *questions, int index) {
+Group *createGroup(int people, int start, int end) {
     Group *group = malloc(sizeof(Group));
     group->people = people;
-    group->questions = questions;
-    if (g_groups[index] != NULL) {
-        g_groups[index] = group;
-    } else {
-        printf("ERROR: Cannot add new group at index %d\n", index);
-    }
+    group->start = start;
+    group->end = end;
+    return group;
 }
 
 int checkNewGroup(char* string) {
@@ -120,14 +117,12 @@ int collectQuestions(char *questions) {
         }
     }
 
-    printf("match> %s\n", match);
+    /* printf("match> %s\n", match); */
     return strlen(match);
 }
 
 
 int partOne() {
-    /* int count = 0; */
-    /* int people = 0; */
     int solution = 0;
     // concat all the questions in one line
     char *questions = malloc(sizeof(char) * MAXLINEBUFFER);
@@ -135,12 +130,9 @@ int partOne() {
 
     for (int i = 0; i < g_inputFile.lines; i++) {
         if (checkNewGroup(g_inputFile.input[i])) {
-            printf("%s\n", questions);
             solution += collectQuestions(questions);
-            /* printf("%d\n", nquestions); */
             questions[0] = '\0';
         } else {
-            printf("%s", g_inputFile.input[i]);
             strcat(questions, g_inputFile.input[i]);
             // remove return carriages
             char* ptr = questions + strlen(questions) - 1;
@@ -148,13 +140,58 @@ int partOne() {
         }
     }
 
-    printf("%s\n", questions);
     solution += collectQuestions(questions);
-    /* printf("%d\n", nquestions); */
-    questions[0] = '\0';
+    free(questions);
+    return solution;
+}
+
+void printGroups(/* int countGroups */)
+{
+    // WHAT THE FUCK!
+    Group **ptr = g_groups;
+    while(*ptr != NULL) {
+        printf("---- People %d\n", (*ptr)->people);
+        for (int i = (*ptr)->start; i < (*ptr)->end; i++) {
+            printf(">%s\n", g_inputFile.input[i]);
+        }
+        ptr++;
+    }
+
+}
+
+int partTwo()
+{
+    int solution = 0;
+    int people = 0;
+    int countGroups = 0;
+    int start = 0;
+    int end = 0;
+
+    // time to capture people - answers
+    for (int i = 0; i < g_inputFile.lines; i++) {
+        if (checkNewGroup(g_inputFile.input[i])) {
+            // from the last group
+            g_groups[countGroups] = createGroup(people, start, end);
+            start = end;
+            // stupid hack to manage new lines
+            start++;
+            end++;
+
+            people = 0;
+            countGroups++;
+        } else {
+            people++;
+            end++;
+        }
+    }
+    printf("People involved: %d\n", people);
+    g_groups[countGroups] = createGroup(people, start, end);
+    countGroups++;
+
+    printGroups(countGroups);
+
 
     return solution;
-
 }
 
 
@@ -164,7 +201,8 @@ int main(int argc, char *argv[])
     for (int i = 1; i < argc ; i++) {
         getInputData(argv[i]);
     }
-    /* printInput(); */
-    printf("Solution: %d\n", partOne());
+    /* printf("Solution part one: %d\n", partOne()); */
+    printf("Solution part two: %d\n", partTwo());
+
     return 0;
 }
