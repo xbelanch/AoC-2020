@@ -128,21 +128,33 @@ int collectQuestions(char *questions) {
 int partOne() {
     /* int count = 0; */
     /* int people = 0; */
-
+    int solution = 0;
     // concat all the questions in one line
     char *questions = malloc(sizeof(char) * MAXLINEBUFFER);
     questions[0] = '\0';
 
     for (int i = 0; i < g_inputFile.lines; i++) {
-        printf("%s", g_inputFile.input[i]);
-        strcat(questions, g_inputFile.input[i]);
-        // remove return carriages
-        char* ptr = questions + strlen(questions) - 1;
-        *ptr = '\0';
+        if (checkNewGroup(g_inputFile.input[i])) {
+            printf("%s\n", questions);
+            solution += collectQuestions(questions);
+            /* printf("%d\n", nquestions); */
+            questions[0] = '\0';
+        } else {
+            printf("%s", g_inputFile.input[i]);
+            strcat(questions, g_inputFile.input[i]);
+            // remove return carriages
+            char* ptr = questions + strlen(questions) - 1;
+            *ptr = '\0';
+        }
     }
+
     printf("%s\n", questions);
-    int nquestions = collectQuestions(questions);
-    printf("%d\n", nquestions);
+    solution += collectQuestions(questions);
+    /* printf("%d\n", nquestions); */
+    questions[0] = '\0';
+
+    return solution;
+
 }
 
 
@@ -153,6 +165,6 @@ int main(int argc, char *argv[])
         getInputData(argv[i]);
     }
     /* printInput(); */
-    partOne();
+    printf("Solution: %d\n", partOne());
     return 0;
 }
