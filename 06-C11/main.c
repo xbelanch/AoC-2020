@@ -3,8 +3,8 @@
 #include <string.h>
 
 
-#define MAXLINEBUFFER 512
-#define MAXGROUPS 1024
+#define MAXLINEBUFFER 1024
+#define MAXGROUPS 2048
 
 typedef struct inputFile {
     int lines;
@@ -83,15 +83,144 @@ int checkNewGroup(char* string) {
     return result;
 }
 
+char *intersect(char *src, char *dst, int line) {
 
-void printInput() {
+    // remove return carriage
+
+    if (line > 0) {
+
+        // intersect any occurrence between two strings
+        // i.e
+        // ab
+        // ac
+        // ->
+        // a
+
+        // we need a occurrences buffer
+        char *occurrences = malloc(sizeof(char) * MAXLINEBUFFER);
+        occurrences[0] = '\0';
+
+        int match = 0;
+
+        for (char *ptr_src = src; *ptr_src != '\0'; ptr_src++) {
+            for (char *ptr_dst = dst; *ptr_dst != '\0'; ptr_dst++) {
+
+                if (*ptr_src == *ptr_dst) {
+                    match = 1;
+                    break;
+                }
+
+                if (*ptr_src != *ptr_dst) {
+                    match = 0;
+                }
+            }
+
+            if (match) {
+                size_t len = strlen(occurrences);
+                char *buffer = malloc(sizeof(char) * len + 1 + 1);
+                strcpy(buffer, occurrences);
+                buffer[len] = *ptr_src;
+                buffer[len + 1] = '\0';
+                strcpy(occurrences, buffer);
+                free(buffer);
+                match = 0;
+            }
+        }
+
+        return occurrences;
+
+    } else {
+        // first of all, remove return carriage
+        if (src[strlen(src) - 1] == '\r' || src[strlen(src) - 1] == '\n')
+            src[strlen(src) - 1] = '\0';
+
+        // copy literally src to dst
+        dst = malloc(sizeof(char) * strlen(src));
+        dst[0] = '\0';
+        // remove all the repeated occurrences
+        // i.e: aaaaaabaaaacccaaabbb -> abc
+        int match = 0;
+        for (char *ptr_src = src; *ptr_src != '\0'; ptr_src++) {
+
+            if (strlen(dst) == 0) {
+                size_t len = strlen(dst);
+                char *buffer = malloc(sizeof(char) * len + 1 + 1);
+                buffer[len] = *ptr_src;
+                buffer[len + 1] = '\0';
+                strcpy(dst, buffer);
+                free(buffer);
+            }
+
+            for (char *ptr_dst = dst; *ptr_dst != '\0'; ptr_dst++) {
+                if (*ptr_src == *ptr_dst) {
+                    match = 0;
+                    break;
+                }
+
+                if (*ptr_src != *ptr_dst) {
+                    match = 1;
+                }
+            }
+
+            if (match) {
+                size_t len = strlen(dst);
+                char *buffer = malloc(sizeof(char) * len + 1 + 1);
+                strcpy(buffer, dst);
+                buffer[len] = *ptr_src;
+                buffer[len + 1] = '\0';
+                strcpy(dst, buffer);
+                free(buffer);
+                match = 0;
+            }
+        }
+        /* printf("src: %s\n", src); */
+        /* printf("dst: %s\n", dst); */
+    }
+
+    return dst;
+}
+
+int dumpGroupData(char** input) {
+    char *yes_to_questions;
+
+    int line =0;
+    for (char **ptr = input; *ptr != NULL; ptr++) {
+        yes_to_questions = intersect(*ptr, yes_to_questions, line);
+        line++;
+    }
+    return (int) strlen(yes_to_questions);
+}
+
+int partTwo() {
+    int total_yes_to_questions = 0;
+    int group = 0;
+    printf("Group :%d\n", group);
+    group++;
+    char** stackGroups = (char**)malloc(sizeof(char) * MAXGROUPS);
+    int index = 0;
     for (int i = 0; i < g_inputFile.lines; i++) {
-        if (checkNewGroup(g_inputFile.input[i])) {
-            printf("New group here\n");
+        if (g_inputFile.input[i][0] == '\n') { // check new line = group
+            // set end of array of strings
+            stackGroups[index] =NULL;
+            // dump or processing data from stackGroups
+            total_yes_to_questions += dumpGroupData(stackGroups);
+            // reset index
+            index = 0;
+
+            /* printf("Group :%d\n", group); */
+            group++;
         } else {
-            printf("%d> %s", i, g_inputFile.input[i]);
+            stackGroups[index] = g_inputFile.input[i];
+            /* printf(">%s", stackGroups[index]); */
+            index++;
         }
     }
+    // matching last group
+    stackGroups[index] = NULL;
+    total_yes_to_questions += dumpGroupData(stackGroups);
+    index = 0;
+
+    return total_yes_to_questions;
 }
 
 int collectQuestions(char *questions) {
@@ -145,63 +274,13 @@ int partOne() {
     return solution;
 }
 
-void printGroups(/* int countGroups */)
-{
-    // WHAT THE FUCK!
-    Group **ptr = g_groups;
-    while(*ptr != NULL) {
-        printf("---- People %d\n", (*ptr)->people);
-        for (int i = (*ptr)->start; i < (*ptr)->end; i++) {
-            printf(">%s\n", g_inputFile.input[i]);
-        }
-        ptr++;
-    }
-
-}
-
-int partTwo()
-{
-    int solution = 0;
-    int people = 0;
-    int countGroups = 0;
-    int start = 0;
-    int end = 0;
-
-    // time to capture people - answers
-    for (int i = 0; i < g_inputFile.lines; i++) {
-        if (checkNewGroup(g_inputFile.input[i])) {
-            // from the last group
-            g_groups[countGroups] = createGroup(people, start, end);
-            start = end;
-            // stupid hack to manage new lines
-            start++;
-            end++;
-
-            people = 0;
-            countGroups++;
-        } else {
-            people++;
-            end++;
-        }
-    }
-    printf("People involved: %d\n", people);
-    g_groups[countGroups] = createGroup(people, start, end);
-    countGroups++;
-
-    printGroups(countGroups);
-
-
-    return solution;
-}
-
-
-
 int main(int argc, char *argv[])
 {
     for (int i = 1; i < argc ; i++) {
         getInputData(argv[i]);
     }
-    /* printf("Solution part one: %d\n", partOne()); */
+
+    printf("Solution part one: %d\n", partOne());
     printf("Solution part two: %d\n", partTwo());
 
     return 0;

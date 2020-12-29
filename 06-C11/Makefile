@@ -1,6 +1,6 @@
 CC=gcc
-CXXFLAGS=-Wall -Wextra -std=c11 -pedantic
-INPUT=sample-02.txt
+CXXFLAGS=-Wall -Wextra -std=c11 -pedantic -g
+INPUT=input.txt
 
 .PHONY: test
 
