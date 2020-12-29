@@ -4,7 +4,7 @@
 
 
 #define MAXLINEBUFFER 1024
-/* #define MAXGROUPS 2048 */
+#define MAXGROUPS 1024
 
 /* typedef struct inputFile { */
 /*     int lines; */
@@ -228,13 +228,30 @@
 /*     return solution; */
 /* } */
 
+int any_yesu(char **answers) {
+    for (char **answer = answers; *answer != NULL; answer++) {
+        printf("%s", *answer);
+    }
+
+    return 0;
+}
+
+int every_yesu(char **answers) {
+    for (char **answer = answers; *answer != NULL; answer++) {
+        printf("%s", *answer);
+    }
+
+    return 0;
+}
+
 void solve_file(char *filename)
 {
-
     FILE *fp;
     char** lines;
     int nlines = 0;
-
+    char** answers;
+    int any_result = 0;
+    int every_result = 0;
 
     // count all the lines from input file
     fp = fopen(filename, "r");
@@ -246,14 +263,17 @@ void solve_file(char *filename)
             nlines++;
         }
     }
-
     fclose(fp);
 
     // store the content of lines
     lines = (char **) malloc(sizeof(char*) * nlines);
 
+    // initialize answers
+    answers = (char **)malloc(sizeof(char) * MAXGROUPS);
+
     fp = fopen(filename, "r");
 
+    int i = 0;
     for (int currentLineIndex = 0; currentLineIndex < nlines; currentLineIndex++) {
 
         lines[currentLineIndex] = (char *) malloc(MAXLINEBUFFER + 1);
@@ -263,17 +283,30 @@ void solve_file(char *filename)
         char *src, *dst;
         for (src = dst = lines[currentLineIndex]; *src != '\0'; src++) {
             *dst = *src;
-            if (*dst != '\r') dst++;
+            if (*dst != '\r' || *dst != '\n') dst++;
         }
         *dst = '\0';
 
-        printf("%d>%s", currentLineIndex, lines[currentLineIndex]);
-
+        if (lines[currentLineIndex][0] != '\n') {
+            answers[i] = lines[currentLineIndex];
+            i++;
+        } else {
+            answers[i] = NULL;
+            any_result += any_yesu(answers);
+            every_result += every_yesu(answers);
+            i = 0;
+        }
     }
+
+    answers[i] = NULL;
+    any_result += any_yesu(answers);
+    every_result += every_yesu(answers);
+
+    printf("Part 1: %d\n", any_result);
+    printf("Part 2: %d\n", every_result);
+
     fclose(fp);
 }
-
-
 
 int main(int argc, char *argv[])
 {
