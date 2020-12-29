@@ -6,37 +6,6 @@
 #define MAXLINEBUFFER 1024
 #define MAXGROUPS 1024
 
-/* typedef struct inputFile { */
-/*     int lines; */
-/*     char **input; */
-/* } InputFile; */
-
-/* typedef struct group { */
-/*     int people; */
-/*     int start; */
-/*     int end; */
-/* } Group; */
-
-/* InputFile g_inputFile; */
-/* Group* g_groups[MAXGROUPS]; */
-
-
-/* Group *createGroup(int people, int start, int end) { */
-/*     Group *group = malloc(sizeof(Group)); */
-/*     group->people = people; */
-/*     group->start = start; */
-/*     group->end = end; */
-/*     return group; */
-/* } */
-
-/* int checkNewGroup(char* string) { */
-/*     int result = 0; */
-/*     if (string[0] == '\n') { */
-/*         result = 1; */
-/*     } */
-/*     return result; */
-/* } */
-
 /* char *intersect(char *src, char *dst, int line) { */
 
 /*     // remove return carriage */
@@ -177,68 +146,46 @@
 /*     return total_yes_to_questions; */
 /* } */
 
-/* int collectQuestions(char *questions) { */
-
-/*     int occurrences = 0; */
-/*     char *match = malloc(sizeof(char) * MAXLINEBUFFER); */
-/*     match[0] = '\0'; */
-/*     for (char* ptr = questions; *ptr != '\0'; ptr++) { */
-/*         for (char* src = match; *src != '\0'; src++) { */
-/*             if (*ptr == *src) { */
-/*                 occurrences++; */
-/*             } */
-/*         } */
-/*         if (occurrences == 0 || strlen(match) == 0)  { */
-/*             size_t len = strlen(match); */
-/*             char *tmp = malloc(sizeof(char) * len + 1 + 1); // one for extra char, one for trailing zero */
-/*             tmp[len] = *ptr; */
-/*             tmp[len + 1] = '\0'; */
-/*             strcpy(match, tmp); */
-/*             free(tmp); */
-/*         } else { */
-/*             occurrences = 0; */
-/*         } */
-/*     } */
-
-/*     /\* printf("match> %s\n", match); *\/ */
-/*     return strlen(match); */
-/* } */
-
-
-/* int partOne() { */
-/*     int solution = 0; */
-/*     // concat all the questions in one line */
-/*     char *questions = malloc(sizeof(char) * MAXLINEBUFFER); */
-/*     questions[0] = '\0'; */
-
-/*     for (int i = 0; i < g_inputFile.lines; i++) { */
-/*         if (checkNewGroup(g_inputFile.input[i])) { */
-/*             solution += collectQuestions(questions); */
-/*             questions[0] = '\0'; */
-/*         } else { */
-/*             strcat(questions, g_inputFile.input[i]); */
-/*             // remove return carriages */
-/*             char* ptr = questions + strlen(questions) - 1; */
-/*             *ptr = '\0'; */
-/*         } */
-/*     } */
-
-/*     solution += collectQuestions(questions); */
-/*     free(questions); */
-/*     return solution; */
-/* } */
 
 int any_yesu(char **answers) {
+    char* result = (char*)malloc(sizeof(char) * MAXLINEBUFFER);
+    result[0] = '\0';
+
+    int i = 0;
+    int match = 0;
     for (char **answer = answers; *answer != NULL; answer++) {
-        printf("%s", *answer);
+        // remove return carriages
+        char* rc = *answer + strlen(*answer) - 1;
+        *rc = '\0';
+
+        for (char *chr = *answer; *chr != '\0'; chr++) {
+            if (strlen(result) == 0) {
+                result[i] = *chr;
+                result[i + 1] = '\0';
+                i++;
+            } else {
+                for (char *x = result; *x != '\0'; x++ ) {
+                    if (*chr == *x) {
+                        match++;
+                    }
+                }
+                if (!match) {
+                    result[i] = *chr;
+                    result[i + 1] = '\0';
+                    i++;
+                }
+                match = 0;
+            }
+        }
     }
 
-    return 0;
+    int len = strlen(result);
+    return len;
 }
 
 int every_yesu(char **answers) {
     for (char **answer = answers; *answer != NULL; answer++) {
-        printf("%s", *answer);
+        /* printf("%s", *answer); */
     }
 
     return 0;
