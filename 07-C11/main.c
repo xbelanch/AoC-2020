@@ -4,6 +4,13 @@
 
 #define MAX_BUFFER_LINE 512
 #define MAX_BUFFER_SIZE 2048
+#define MAX_BUFFER_RULES 1024
+
+typedef struct rule {
+    char *bagname;
+} Rule;
+
+Rule rules[MAX_BUFFER_RULES];
 
 int countlines(char *filename){
     int lines = 0;
@@ -17,6 +24,25 @@ int countlines(char *filename){
     }
     fclose(fp);
     return lines;
+}
+
+char *getBagName(char *string) {
+    char *tmp = malloc(sizeof(char) * MAX_BUFFER_LINE);
+    tmp[0] = '\0';
+    int spaces = 0;
+    int len = 0;
+    for (char *ptr = string; *ptr != '\0'; ptr++) {
+        if (*ptr == ' ') {
+            spaces++;
+        }
+        if (spaces == 2) {
+            memcpy(tmp, string, len + 1);
+            break;
+        }
+        len++;
+    }
+    tmp[len + 1] = '\0';
+    return tmp;
 }
 
 void solve_file(char* filename) {
@@ -35,9 +61,14 @@ void solve_file(char* filename) {
         if (fgets(lines[i], MAX_BUFFER_LINE + 1, fp) == NULL) {
             printf("ERROR, line too long at %d\n", i);
         } else {
-            // parse every line, splitting string into tokens
+            // parse every line, splitting string by commas
             // and store onto buffer
             char *pch = strtok(lines[i], ",.\r\n");
+
+            // get name of the bag rule
+            rules[i].bagname = getBagName(pch);
+            rules[i + 1].bagname = NULL;
+
             int k = 0;
             while (pch != NULL) {
                 buffer[j + k] = malloc(sizeof(char) * strlen(pch) + 1);
@@ -52,12 +83,16 @@ void solve_file(char* filename) {
         }
     }
 
-    // print buffer to stdout
-    int i = 0;
-    for (char** ptr = buffer; *ptr != NULL; ptr++) {
-        printf("buffer[%d]: %s\n", i, *ptr);
-        i++;
+    for (int i = 0; rules[i].bagname != NULL; i++) {
+        printf("%d>%s\n", i, rules[i].bagname);
     }
+
+    // print buffer to stdout
+    /* int i = 0; */
+    /* for (char** ptr = buffer; *ptr != NULL; ptr++) { */
+    /*     printf("buffer[%d]: %s\n", i, *ptr); */
+    /*     i++; */
+    /* } */
 
     free(lines);
     free(buffer);
