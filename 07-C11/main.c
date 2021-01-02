@@ -5,9 +5,16 @@
 #define MAX_BUFFER_LINE 512
 #define MAX_BUFFER_SIZE 2048
 #define MAX_BUFFER_RULES 1024
+#define MAX_BUFFER_BAGS 32
+
+typedef struct bag {
+    char *bagname;
+    int number;
+} Bag;
 
 typedef struct rule {
-    char *bagname;
+    char *name;
+    Bag *bags[MAX_BUFFER_BAGS]; // we don't know how exactly bags contains every rule
 } Rule;
 
 Rule rules[MAX_BUFFER_RULES];
@@ -26,6 +33,32 @@ int countlines(char *filename){
     return lines;
 }
 
+int getNumberBags(char *string, int spaces) {
+    char number[1];
+    char *ptr1, *ptr2;
+    int count = 0;
+    for (ptr1 = ptr2 = string; *ptr1 != '\0'; ptr1++) {
+        if (*ptr1 == ' ')
+            count++;
+        if (count == spaces) {
+            ptr2 = ptr1;
+            if (*ptr2 == 'n' && *(ptr2++) == 'o')
+                return 0;
+        }
+    }
+    number[0] = *ptr2;
+    number[1] = '\0';
+
+    return atoi(number);
+}
+
+char *getContainBag(void) {
+
+    char *tmp = malloc(sizeof(char) * MAX_BUFFER_LINE);
+
+    return tmp;
+}
+
 char *getBagName(char *string) {
     char *tmp = malloc(sizeof(char) * MAX_BUFFER_LINE);
     tmp[0] = '\0';
@@ -41,8 +74,18 @@ char *getBagName(char *string) {
         }
         len++;
     }
-    tmp[len + 1] = '\0';
+    tmp[len] = '\0';
     return tmp;
+}
+
+void transverseTreeRules(void) {
+    for (int i = 0; rules[i].name != NULL; i++) {
+        if (rules[i].bags[0] == NULL) {
+            printf("%s contain no other bags\n", rules[i].name);
+        } else {
+            printf("%s contain %d unknow bag\n", rules[i].name, rules[i].bags[0]->number);
+        }
+    }
 }
 
 void solve_file(char* filename) {
@@ -56,18 +99,29 @@ void solve_file(char* filename) {
     printf("Number of lines of %s file: %d\n", filename, max);
 
     // store all the lines from input filename to lines var
+    int nbags = 0;
     for (int i, j =  0; i < max; i++) {
         lines[i] = (char *)malloc(MAX_BUFFER_LINE);
         if (fgets(lines[i], MAX_BUFFER_LINE + 1, fp) == NULL) {
             printf("ERROR, line too long at %d\n", i);
         } else {
             // parse every line, splitting string by commas
-            // and store onto buffer
+            // and store it into buffer
             char *pch = strtok(lines[i], ",.\r\n");
 
             // get name of the bag rule
-            rules[i].bagname = getBagName(pch);
-            rules[i + 1].bagname = NULL;
+            rules[i].name = getBagName(pch);
+            rules[i + 1].name = NULL;
+
+            // get number of bags (first pass)
+            int number = getNumberBags(pch, 4);
+            if (number == 0) {
+                rules[i].bags[0] = NULL;
+            } else {
+                rules[i].bags[nbags] = malloc(sizeof(Bag));
+                rules[i].bags[nbags]->number = number;
+                nbags++;
+            }
 
             int k = 0;
             while (pch != NULL) {
@@ -76,23 +130,17 @@ void solve_file(char* filename) {
                 memcpy(buffer[j + k], pch, strlen(pch));
                 buffer[j + k][strlen(pch)] = '\0';
                 pch = strtok(NULL, ",.\r\n");
+
                 k++;
             }
             j += k;
+            nbags = 0;
             buffer[j + 1] = NULL;
         }
     }
 
-    for (int i = 0; rules[i].bagname != NULL; i++) {
-        printf("%d>%s\n", i, rules[i].bagname);
-    }
-
-    // print buffer to stdout
-    /* int i = 0; */
-    /* for (char** ptr = buffer; *ptr != NULL; ptr++) { */
-    /*     printf("buffer[%d]: %s\n", i, *ptr); */
-    /*     i++; */
-    /* } */
+    // Naif Tranversal Tree of Rules
+    transverseTreeRules();
 
     free(lines);
     free(buffer);
