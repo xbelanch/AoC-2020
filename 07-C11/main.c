@@ -59,6 +59,40 @@ char *getContainBag(void) {
     return tmp;
 }
 
+char *getBagName2(char *string, int from, char sdelimiter, int to, char edelimiter) {
+    char *bagname = malloc(sizeof(char) * MAX_BUFFER_LINE);
+    char *sptr, *eptr;
+    int scount, ecount = 0;
+    int flag = 0;
+    for (eptr = string; *eptr != '\0'; eptr++) {
+        if (ecount == to) {
+            eptr--; // remove last end delimiter
+            break;
+        }
+
+        if (*eptr == edelimiter && flag) {
+            ecount++;
+        }
+
+        if (scount == from && !flag) {
+            sptr = eptr;
+
+            flag = 1;
+        }
+
+        if (*eptr == sdelimiter)
+            scount++;
+    }
+
+    for (int i = 0; sptr != eptr; i++) {
+        bagname[i] = *sptr;
+        bagname[i + 1] = '\0';
+        sptr++;
+    }
+
+    return bagname;
+}
+
 char *getBagName(char *string) {
     char *tmp = malloc(sizeof(char) * MAX_BUFFER_LINE);
     tmp[0] = '\0';
@@ -83,7 +117,33 @@ void transverseTreeRules(void) {
         if (rules[i].bags[0] == NULL) {
             printf("%s contain no other bags\n", rules[i].name);
         } else {
-            printf("%s contain %d unknow bag\n", rules[i].name, rules[i].bags[0]->number);
+            printf("%s contain %d %s bag(s)", rules[i].name, rules[i].bags[0]->number, rules[i].bags[0]->bagname);
+
+            if (rules[i].bags[1] != NULL) {
+                int j = 1;
+                while (rules[i].bags[j] != NULL) {
+                    printf(" and %d %s bag(s)", rules[i].bags[j]->number, rules[i].bags[j]->bagname);
+                    j++;
+                }
+                printf("\n");
+            } else {
+                printf("\n");
+            }
+        }
+    }
+}
+
+void findAllOccurrencesByBagName(char* bagname) {
+    printf("Find all occurrences of %s bag\n", bagname);
+    for (int i = 0; rules[i].name != NULL; i++) {
+        if (strcmp(rules[i].name, bagname) == 0)
+            printf("Matched at line %d as rule\n", i + 1);
+        if (rules[i].bags[0] != NULL) {
+            for (int j = 0; rules[i].bags[j] != NULL; j++) {
+                if (strcmp(rules[i].bags[j]->bagname, bagname) == 0) {
+                    printf("Matched at line %d\n", i + 1);
+                }
+            }
         }
     }
 }
@@ -95,8 +155,7 @@ void solve_file(char* filename) {
     char **lines = (char**)malloc(sizeof(char*) * max);
     char **buffer = (char**)malloc(sizeof(char*) * MAX_BUFFER_SIZE);
 
-    printf("Filename: %s\n", filename);
-    printf("Number of lines of %s file: %d\n", filename, max);
+    printf("File %s: %d lines\n", filename, max);
 
     // store all the lines from input filename to lines var
     int nbags = 0;
@@ -120,27 +179,38 @@ void solve_file(char* filename) {
             } else {
                 rules[i].bags[nbags] = malloc(sizeof(Bag));
                 rules[i].bags[nbags]->number = number;
+                rules[i].bags[nbags]->bagname =getBagName2(pch, 5, ' ', 2, ' ');
                 nbags++;
             }
 
             int k = 0;
             while (pch != NULL) {
-                buffer[j + k] = malloc(sizeof(char) * strlen(pch) + 1);
-                buffer[j + k][0] = '\0';
-                memcpy(buffer[j + k], pch, strlen(pch));
-                buffer[j + k][strlen(pch)] = '\0';
                 pch = strtok(NULL, ",.\r\n");
+                if (pch != NULL) {
+                    // remove first character if this equals to space
+                    if (pch[0] == ' ')
+                        pch++;
+                    char *tmp = strdup(pch);
+                    // add new bag to container
+                    rules[i].bags[nbags] = malloc(sizeof(Bag));
+                    rules[i].bags[nbags]->number = atoi(getBagName2(tmp, 0, ' ', 1, ' '));
+                    rules[i].bags[nbags]->bagname = getBagName2(tmp, 2, ' ', 2, ' ');
+                    nbags++;
+                }
 
                 k++;
             }
             j += k;
-            nbags = 0;
             buffer[j + 1] = NULL;
+            nbags++;
+            rules[i].bags[nbags] = NULL;
+            nbags = 0;
+
         }
     }
-
     // Naif Tranversal Tree of Rules
-    transverseTreeRules();
+    /* transverseTreeRules(); */
+    findAllOccurrencesByBagName("shiny gold");
 
     free(lines);
     free(buffer);
