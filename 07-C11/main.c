@@ -3,7 +3,7 @@
 #include <string.h>
 
 #define MAXCHILDRENSIZE 32
-#define MAXSIZELINES 2048
+#define MAXSIZELINES 512
 
 typedef struct child {
     char *name;
@@ -137,18 +137,27 @@ void printRule(Rule rule) {
     }
 }
 
-void solveFile(char *filepath) {
+int solveFile(char *filepath) {
     printf("%s\n", filepath);
 
     FILE *fp = fopen(filepath, "r");
 
+    if (fp == NULL) {
+        perror("Failed: ");
+        return 1;
+    }
+
     char lines[MAXSIZELINES];
     while (fgets(lines, sizeof(lines), fp) != NULL) {
-        Rule rule = lineToRule(lines);
-        printRule(rule);
+        printf("%s", lines);
+        Rule *rule = malloc(sizeof(Rule));
+        *rule = lineToRule(lines);
+        printRule(*rule);
     }
 
     fclose(fp);
+
+    return 0;
 }
 
 int main(int argc, char *argv[])
