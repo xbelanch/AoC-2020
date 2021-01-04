@@ -11,6 +11,7 @@ typedef struct child {
 
 typedef struct rule {
     char *name;
+    int count;
     Child children[MAXCHILDRENSIZE];
 } Rule;
 
@@ -47,7 +48,7 @@ char* strsplit(char** stringp, const char* delim)
     return start;
 }
 
-void lineToRule(char *line) {
+Rule lineToRule(char *line) {
     size_t len = 0;
 
     // split input line by delimiter "contain "
@@ -62,57 +63,64 @@ void lineToRule(char *line) {
     container[strlen(container) - 1] = '\0'; // remove last dot
 
     // get rule
-    char *rule = malloc(sizeof(char) * strlen(line) + 1);
+    char *rulename = malloc(sizeof(char) * strlen(line) + 1);
     len = strlen(line) - strlen(pch) - strlen(delimiter);
-    strncpy(rule, line, len);
-    rule[len - 1] = '\0'; // remove last space
+    strncpy(rulename, line, len);
+    rulename[len - 1] = '\0'; // remove last space
 
     // trim bag word from rule and container
-    strremove(rule, " bags");
-    strremove(rule, " bag");
+    strremove(rulename, " bags");
+    strremove(rulename, " bag");
     strremove(container, " bags");
     strremove(container, " bag");
 
     // split container in several entries or bags
-    char *bags[32];
+    Rule rule;
+    rule.name = rulename;
     char *bag;
-    int i = 0;
+    int count = 0;
     while ((bag = strsplit(&container, ",")) != NULL) {
         if (bag[0] == ' ') {
             bag++;
         }
 
-        bags[i] = bag;
-
-        if (strcmp(bags[i], "no other") == 0) {
+        if (strcmp(bag, "no other") == 0) {
             printf("No bags found\n");
+            rule.count = 0;
+            break;
         } else {
             // get amount of bags
-            len = strlen(bags[i]) - strlen(strstr(bags[i], " "));
-            char *number = malloc(sizeof(char) * strlen(bags[i] + 1));
-            strncpy(number, bags[i], len);
+            len = strlen(bag) - strlen(strstr(bag, " "));
+            char *number = malloc(sizeof(char) * strlen(bag) + 1);
+            strncpy(number, bag, len);
             number[len] = '\0';
             int amount = atoi(number);
-            printf("%d\n", amount);
+
+            // get name of bags
+            char *pstr = strstr(bag, " ");
+            pstr++;
+
+            // store to child
+            rule.children[count].amount = amount;
+            rule.children[count].name = pstr;
         }
-        bags[i + 1] = NULL;
-        i++;
+        count++;
     }
 
-    // print it to stdout
-    printf("-%s-\n", rule);
-    for (int i = 0; bags[i] != NULL; i++) {
-        printf("-%s-\n", bags[i]);
-    }
+    // Store how many contain
+    rule.count = count;
+
+    return rule;
 }
 
-/* Rule lineToRule(char *line) { */
-/*     Rule rule = { */
-/*         "u pogger", */
-/*         {{"mate", 1 }} */
-/*     }; */
-/*     return rule; */
-/* } */
+void printRule(Rule rule) {
+    printf("Rule> %s:\n", rule.name);
+    for (int i = 0; i < rule.count; i++) {
+        printf("  %d of %s\n", rule.children[i].amount, rule.children[i].name);
+    }
+
+}
+
 
 void solveFile(char *filepath) {
     printf("%s\n", filepath);
@@ -124,6 +132,8 @@ int main(int argc, char *argv[])
         solveFile(argv[i]);
     }
 
-    lineToRule("muted gold bags contain 1 wavy red bag, 3 mirrored violet bags, 5 bright gold bags, 5 plaid white bags.");
+    Rule rule = lineToRule("shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.");
+    printRule(rule);
+
     return 0;
 }
