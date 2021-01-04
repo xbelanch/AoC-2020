@@ -3,6 +3,7 @@
 #include <string.h>
 
 #define MAXCHILDRENSIZE 32
+#define MAXSIZELINES 2048
 
 typedef struct child {
     char *name;
@@ -51,6 +52,10 @@ char* strsplit(char** stringp, const char* delim)
 Rule lineToRule(char *line) {
     size_t len = 0;
 
+    // discard carriage return or new line
+    strtok(line, "\r");
+    strtok(line, "\n");
+
     // split input line by delimiter "contain "
     // in two strings: rule and container
     char *delimiter = "contain ";
@@ -84,6 +89,7 @@ Rule lineToRule(char *line) {
             bag++;
         }
 
+
         if (strcmp(bag, "no other") == 0) {
             printf("No bags found\n");
             rule.count = 0;
@@ -95,14 +101,25 @@ Rule lineToRule(char *line) {
             strncpy(number, bag, len);
             number[len] = '\0';
             int amount = atoi(number);
+            rule.children[count].amount = amount;
 
             // get name of bags
             char *pstr = strstr(bag, " ");
             pstr++;
 
-            // store to child
-            rule.children[count].amount = amount;
-            rule.children[count].name = pstr;
+            // check if entry is the last one
+            // @TODO: I don't know why last entry adds some extra characters at the end of the string
+            char *dot = strstr(pstr, ".");
+            if (dot != NULL) {
+                len = strlen(pstr) - strlen(dot);
+                char *color = malloc(sizeof(char) * strlen(pstr) + 1);
+                strncpy(color, pstr, len);
+                color[len] = '\0';
+                rule.children[count].name =color;
+            } else {
+                rule.children[count].name = pstr;
+            }
+
         }
         count++;
     }
@@ -118,12 +135,20 @@ void printRule(Rule rule) {
     for (int i = 0; i < rule.count; i++) {
         printf("  %d of %s\n", rule.children[i].amount, rule.children[i].name);
     }
-
 }
-
 
 void solveFile(char *filepath) {
     printf("%s\n", filepath);
+
+    FILE *fp = fopen(filepath, "r");
+
+    char lines[MAXSIZELINES];
+    while (fgets(lines, sizeof(lines), fp) != NULL) {
+        Rule rule = lineToRule(lines);
+        printRule(rule);
+    }
+
+    fclose(fp);
 }
 
 int main(int argc, char *argv[])
@@ -132,8 +157,6 @@ int main(int argc, char *argv[])
         solveFile(argv[i]);
     }
 
-    Rule rule = lineToRule("shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.");
-    printRule(rule);
 
     return 0;
 }
