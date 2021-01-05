@@ -1,226 +1,243 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "yastring.h"
 
-#define MAX_BUFFER_LINE 512
-#define MAX_BUFFER_SIZE 2048
-#define MAX_BUFFER_RULES 1024
-#define MAX_BUFFER_BAGS 32
+#define MAXCHILDRENSIZE 32
+#define MAXSIZELINE 512
+#define MAXSIZERULES 1024
+#define MAXSIZECOLORS 1024
 
-typedef struct bag {
-    char *bagname;
-    int number;
-} Bag;
+typedef struct child {
+    char *name;
+    int amount;
+    struct rule *rule;
+} Child;
 
 typedef struct rule {
-    char *name;
-    Bag *bags[MAX_BUFFER_BAGS]; // we don't know how exactly bags contains every rule
+    char *key;
+    Child *children[MAXCHILDRENSIZE];
 } Rule;
 
-Rule rules[MAX_BUFFER_RULES];
+// Global variables
+Rule *rules[MAXSIZERULES];
+char *colors[MAXSIZECOLORS];
+int ncolors;
 
-int countlines(char *filename){
-    int lines = 0;
-    FILE* fp = fopen(filename, "r");
+Rule *lineToRule(char *line) {
 
-    while(!feof(fp)) {
-        char ch = fgetc(fp);
-        if(ch == '\n') {
-            lines++;
+    // create a blank rule
+    Rule *rule = (Rule*)malloc(sizeof(Rule));
+
+    size_t len = 0;
+
+    // discard carriage return or new line
+    strtok(line, "\r");
+    strtok(line, "\n");
+
+    // split input line by delimiter "contain "
+    // in two strings: rule and container
+    char *delimiter = "contain ";
+    char *pch = strstr(line, delimiter);
+    pch += strlen(delimiter);
+
+    // get container
+    char *container = malloc(sizeof(char) * strlen(pch) + 1);
+    strncpy(container, pch, strlen(pch));
+    container[strlen(container) - 1] = '\0'; // remove last dot
+
+    // get key rule
+    char *key = malloc(sizeof(char) * strlen(line) + 1);
+    len = strlen(line) - strlen(pch) - strlen(delimiter);
+    strncpy(key, line, len);
+    key[len - 1] = '\0'; // remove last space
+
+    // trim bag word from rule and container
+    strremove(key, " bags");
+    strremove(key, " bag");
+    strremove(container, " bags");
+    strremove(container, " bag");
+
+    // assign key to rule
+    rule->key = key;
+
+    // split container in several entries or bags
+    char *bag = malloc(sizeof(char) * MAXSIZELINE);
+    int nchild = 0;
+    while ((bag = strsplit(&container, ",")) != NULL) {
+        if (bag[0] == ' ') {
+            bag++;
+        }
+
+        if (strcmp(bag, "no other") == 0) {
+            rule->children[0] = NULL;
+            return rule;
+        } else {
+            // create a children
+            Child *child = (Child*)malloc(sizeof(Child));
+            child->rule = rule;
+
+            // get amount of bags
+            len = strlen(bag) - strlen(strstr(bag, " "));
+            char *number = malloc(sizeof(char) * MAXSIZELINE);
+            strncpy(number, bag, len);
+            number[len] = '\0';
+            int amount = atoi(number);
+            child->amount = amount;
+
+            // get name of bags
+            char *pstr = strstr(bag, " ");
+            pstr++;
+
+            // check if entry is the last one
+            // @TODO: I don't know why last entry adds some extra characters at the end of the string
+            char *dot = strstr(pstr, ".");
+            if (dot != NULL) {
+                len = strlen(pstr) - strlen(dot);
+                char *color = malloc(sizeof(char) * MAXSIZELINE);
+                strncpy(color, pstr, len);
+                color[len] = '\0';
+                child->name = color;
+            } else {
+                child->name = pstr;
+            }
+
+            // Add child to rule
+            rule->children[nchild] = child;
+            rule->children[nchild + 1] = NULL;
+            nchild++;
         }
     }
+
+    free(bag);
+    return rule;
+}
+
+void printPrettyRules(Rule *rule) {
+    printf("Rule> %s:\n", rule->key);
+    if (rule->children[0] != 0) {
+        for (int i = 0; rule->children[i] != NULL; i++)
+            printf("  %d of %s\n", rule->children[i]->amount, rule->children[i]->name);
+    } else {
+        printf( "  contain no other bags\n");
+    }
+}
+
+void rulesFromFile(char *filepath) {
+    FILE *fp = fopen(filepath, "r");
+
+    if (fp == NULL) {
+        perror("Failed: ");
+        exit(0);
+    }
+
+    char lines[MAXSIZELINE];
+    int nrules = 0;
+    while (fgets(lines, sizeof(lines), fp) != NULL) {
+        rules[nrules] = lineToRule(lines);
+        rules[nrules + 1] = NULL;
+        nrules++;
+    }
+
     fclose(fp);
-    return lines;
+ }
+
+void printGraphvizOfRules() {
+    printf("digraph Rules {\n");
+    for (int i = 0 ; rules[i] != NULL; i++) {
+        if (rules[i]->children[0] != NULL) {
+            for (int j = 0; rules[i]->children[j] != NULL; j++) {
+                printf("\t\"%s\" -> \"%s\";\n", rules[i]->key, rules[i]->children[j]->name);
+            }
+        } else {
+            printf("\t\"%s\" -> \"no bags\";\n", rules[i]->key);
+        }
+    }
+    printf("}\n");
 }
 
-int getNumberBags(char *string, int spaces) {
-    char number[1];
-    char *ptr1, *ptr2;
+Child **findContainers(char *color) {
+    Child **containers = (Child**)malloc(sizeof(Child) * 512);
     int count = 0;
-    for (ptr1 = ptr2 = string; *ptr1 != '\0'; ptr1++) {
-        if (*ptr1 == ' ')
-            count++;
-        if (count == spaces) {
-            ptr2 = ptr1;
-            if (*ptr2 == 'n' && *(ptr2++) == 'o')
-                return 0;
+    containers[count] = NULL;
+
+    for (int i = 0 ; rules[i] != NULL; i++) {
+        if (rules[i]->children[0] != NULL) {
+            for (int j = 0; rules[i]->children[j] != NULL; j++) {
+                if (strcmp(rules[i]->children[j]->name, color) == 0) {
+                    containers[count] = *(rules[i]->children);
+                    containers[count + 1] = NULL;
+                    count++;
+                }
+            }
         }
     }
-    number[0] = *ptr2;
-    number[1] = '\0';
 
-    return atoi(number);
+    return containers;
 }
 
-char *getContainBag(void) {
+void countWays (char *color) {
+    colors[ncolors] = color;
+    colors[ncolors + 1] = NULL;
+    ncolors++;
 
-    char *tmp = malloc(sizeof(char) * MAX_BUFFER_LINE);
+    Child **containers = findContainers(color);
 
-    return tmp;
-}
-
-char *getBagName2(char *string, int from, char sdelimiter, int to, char edelimiter) {
-    char *bagname = malloc(sizeof(char) * MAX_BUFFER_LINE);
-    char *sptr, *eptr;
-    int scount, ecount = 0;
-    int flag = 0;
-    for (eptr = string; *eptr != '\0'; eptr++) {
-        if (ecount == to) {
-            eptr--; // remove last end delimiter
-            break;
-        }
-
-        if (*eptr == edelimiter && flag) {
-            ecount++;
-        }
-
-        if (scount == from && !flag) {
-            sptr = eptr;
-
-            flag = 1;
-        }
-
-        if (*eptr == sdelimiter)
-            scount++;
-    }
-
-    for (int i = 0; sptr != eptr; i++) {
-        bagname[i] = *sptr;
-        bagname[i + 1] = '\0';
-        sptr++;
-    }
-
-    return bagname;
-}
-
-char *getBagName(char *string) {
-    char *tmp = malloc(sizeof(char) * MAX_BUFFER_LINE);
-    tmp[0] = '\0';
-    int spaces = 0;
     int len = 0;
-    for (char *ptr = string; *ptr != '\0'; ptr++) {
-        if (*ptr == ' ') {
-            spaces++;
-        }
-        if (spaces == 2) {
-            memcpy(tmp, string, len + 1);
-            break;
-        }
+    while (containers[len] != NULL) {
         len++;
     }
-    tmp[len] = '\0';
-    return tmp;
-}
-
-void transverseTreeRules(void) {
-    for (int i = 0; rules[i].name != NULL; i++) {
-        if (rules[i].bags[0] == NULL) {
-            printf("%s contain no other bags\n", rules[i].name);
-        } else {
-            printf("%s contain %d %s bag(s)", rules[i].name, rules[i].bags[0]->number, rules[i].bags[0]->bagname);
-
-            if (rules[i].bags[1] != NULL) {
-                int j = 1;
-                while (rules[i].bags[j] != NULL) {
-                    printf(" and %d %s bag(s)", rules[i].bags[j]->number, rules[i].bags[j]->bagname);
-                    j++;
-                }
-                printf("\n");
-            } else {
-                printf("\n");
-            }
+    if (len > 0) {
+        for (int i = 0; i < len; i++) {
+            countWays(containers[i]->rule->key);
         }
     }
 }
 
-void findAllOccurrencesByBagName(char* bagname) {
-    printf("Find all occurrences of %s bag\n", bagname);
-    for (int i = 0; rules[i].name != NULL; i++) {
-        if (strcmp(rules[i].name, bagname) == 0)
-            printf("Matched at line %d as rule\n", i + 1);
-        if (rules[i].bags[0] != NULL) {
-            for (int j = 0; rules[i].bags[j] != NULL; j++) {
-                if (strcmp(rules[i].bags[j]->bagname, bagname) == 0) {
-                    printf("Matched at line %d\n", i + 1);
-                }
-            }
+
+int solveFile(char *filepath) {
+    rulesFromFile(filepath);
+    /* printGraphvizOfRules(); */
+    char *start = "shiny gold";
+    ncolors = 0;
+    colors[ncolors] = NULL;
+
+    // recursive function to count ways from start color to rule color
+    countWays(start);
+
+    // how many colors has been collected?
+    int lencolors = 0;
+    while (colors[lencolors] != NULL) {
+        lencolors++;
+    }
+
+
+    // remove duplicate colors
+    int count = 0;
+    char* tmp[MAXSIZECOLORS];
+    int d;
+    for (int c = 0; c < lencolors; c++) {
+        for (d = 0; d < count; d++) {
+            if(strcmp(colors[c], tmp[d]) == 0)
+                break;
+        }
+        if (d == count) {
+            tmp[count] = colors[c];
+            count++;
         }
     }
+
+    // remove one because star color not count
+    return count - 1;
 }
 
-void solve_file(char* filename) {
-
-    FILE *fp = fopen(filename, "r");
-    int max = countlines(filename);
-    char **lines = (char**)malloc(sizeof(char*) * max);
-    char **buffer = (char**)malloc(sizeof(char*) * MAX_BUFFER_SIZE);
-
-    printf("File %s: %d lines\n", filename, max);
-
-    // store all the lines from input filename to lines var
-    int nbags = 0;
-    for (int i, j =  0; i < max; i++) {
-        lines[i] = (char *)malloc(MAX_BUFFER_LINE);
-        if (fgets(lines[i], MAX_BUFFER_LINE + 1, fp) == NULL) {
-            printf("ERROR, line too long at %d\n", i);
-        } else {
-            // parse every line, splitting string by commas
-            // and store it into buffer
-            char *pch = strtok(lines[i], ",.\r\n");
-
-            // get name of the bag rule
-            rules[i].name = getBagName(pch);
-            rules[i + 1].name = NULL;
-
-            // get number of bags (first pass)
-            int number = getNumberBags(pch, 4);
-            if (number == 0) {
-                rules[i].bags[0] = NULL;
-            } else {
-                rules[i].bags[nbags] = malloc(sizeof(Bag));
-                rules[i].bags[nbags]->number = number;
-                rules[i].bags[nbags]->bagname =getBagName2(pch, 5, ' ', 2, ' ');
-                nbags++;
-            }
-
-            int k = 0;
-            while (pch != NULL) {
-                pch = strtok(NULL, ",.\r\n");
-                if (pch != NULL) {
-                    // remove first character if this equals to space
-                    if (pch[0] == ' ')
-                        pch++;
-                    char *tmp = strdup(pch);
-                    // add new bag to container
-                    rules[i].bags[nbags] = malloc(sizeof(Bag));
-                    rules[i].bags[nbags]->number = atoi(getBagName2(tmp, 0, ' ', 1, ' '));
-                    rules[i].bags[nbags]->bagname = getBagName2(tmp, 2, ' ', 2, ' ');
-                    nbags++;
-                }
-
-                k++;
-            }
-            j += k;
-            buffer[j + 1] = NULL;
-            nbags++;
-            rules[i].bags[nbags] = NULL;
-            nbags = 0;
-
-        }
-    }
-    // Naif Tranversal Tree of Rules
-    /* transverseTreeRules(); */
-    findAllOccurrencesByBagName("shiny gold");
-
-    free(lines);
-    free(buffer);
-    fclose(fp);
-}
 
 int main(int argc, char *argv[])
 {
     for (int i = 1; i < argc; i++) {
-        solve_file(argv[i]);
+        printf("Input puzzle: %s\n", argv[i]);
+        int partOne = solveFile(argv[i]);
+        printf("Part one solution: %d\n", partOne);
     }
     return 0;
 }
