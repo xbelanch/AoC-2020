@@ -6,11 +6,12 @@
 #define MAXCHILDRENSIZE 32
 #define MAXSIZELINE 512
 #define MAXSIZERULES 1024
-#define ELEMENTS_OF(x) (sizeof(x) / sizeof((x)[0]))
+#define MAXSIZECOLORS 1024
 
 typedef struct child {
     char *name;
     int amount;
+    struct rule *rule;
 } Child;
 
 typedef struct rule {
@@ -18,7 +19,10 @@ typedef struct rule {
     Child *children[MAXCHILDRENSIZE];
 } Rule;
 
+// Global variables
 Rule *rules[MAXSIZERULES];
+char *colors[MAXSIZECOLORS];
+int ncolors;
 
 Rule *lineToRule(char *line) {
 
@@ -71,6 +75,7 @@ Rule *lineToRule(char *line) {
         } else {
             // create a children
             Child *child = (Child*)malloc(sizeof(Child));
+            child->rule = rule;
 
             // get amount of bags
             len = strlen(bag) - strlen(strstr(bag, " "));
@@ -151,17 +156,88 @@ void printGraphvizOfRules() {
     printf("}\n");
 }
 
+Child **findContainers(char *color) {
+    Child **containers = (Child**)malloc(sizeof(Child) * 512);
+    int count = 0;
+    containers[count] = NULL;
 
-void solveFile(char *filepath) {
+    for (int i = 0 ; rules[i] != NULL; i++) {
+        if (rules[i]->children[0] != NULL) {
+            for (int j = 0; rules[i]->children[j] != NULL; j++) {
+                if (strcmp(rules[i]->children[j]->name, color) == 0) {
+                    containers[count] = *(rules[i]->children);
+                    containers[count + 1] = NULL;
+                    count++;
+                }
+            }
+        }
+    }
+
+    return containers;
+}
+
+void countWays (char *color) {
+    colors[ncolors] = color;
+    colors[ncolors + 1] = NULL;
+    ncolors++;
+
+    Child **containers = findContainers(color);
+
+    int len = 0;
+    while (containers[len] != NULL) {
+        len++;
+    }
+    if (len > 0) {
+        for (int i = 0; i < len; i++) {
+            countWays(containers[i]->rule->key);
+        }
+    }
+}
+
+
+int solveFile(char *filepath) {
     rulesFromFile(filepath);
-    printGraphvizOfRules();
+    /* printGraphvizOfRules(); */
+    char *start = "shiny gold";
+    ncolors = 0;
+    colors[ncolors] = NULL;
+
+    // recursive function to count ways from start color to rule color
+    countWays(start);
+
+    // how many colors has been collected?
+    int lencolors = 0;
+    while (colors[lencolors] != NULL) {
+        lencolors++;
+    }
+
+
+    // remove duplicate colors
+    int count = 0;
+    char* tmp[MAXSIZECOLORS];
+    int d;
+    for (int c = 0; c < lencolors; c++) {
+        for (d = 0; d < count; d++) {
+            if(strcmp(colors[c], tmp[d]) == 0)
+                break;
+        }
+        if (d == count) {
+            tmp[count] = colors[c];
+            count++;
+        }
+    }
+
+    // remove one because star color not count
+    return count - 1;
 }
 
 
 int main(int argc, char *argv[])
 {
     for (int i = 1; i < argc; i++) {
-        solveFile(argv[i]);
+        printf("Input puzzle: %s\n", argv[i]);
+        int partOne = solveFile(argv[i]);
+        printf("Part one solution: %d\n", partOne);
     }
     return 0;
 }
