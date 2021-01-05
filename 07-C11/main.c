@@ -6,6 +6,7 @@
 #define MAXCHILDRENSIZE 32
 #define MAXSIZELINE 512
 #define MAXSIZERULES 1024
+#define ELEMENTS_OF(x) (sizeof(x) / sizeof((x)[0]))
 
 typedef struct child {
     char *name;
@@ -66,14 +67,14 @@ Rule *lineToRule(char *line) {
 
         if (strcmp(bag, "no other") == 0) {
             rule->children[0] = NULL;
-            break;
+            return rule;
         } else {
             // create a children
             Child *child = (Child*)malloc(sizeof(Child));
 
             // get amount of bags
             len = strlen(bag) - strlen(strstr(bag, " "));
-            char *number = malloc(sizeof(char) * strlen(bag) + 1);
+            char *number = malloc(sizeof(char) * MAXSIZELINE);
             strncpy(number, bag, len);
             number[len] = '\0';
             int amount = atoi(number);
@@ -88,7 +89,7 @@ Rule *lineToRule(char *line) {
             char *dot = strstr(pstr, ".");
             if (dot != NULL) {
                 len = strlen(pstr) - strlen(dot);
-                char *color = malloc(sizeof(char) * strlen(pstr) + 1);
+                char *color = malloc(sizeof(char) * MAXSIZELINE);
                 strncpy(color, pstr, len);
                 color[len] = '\0';
                 child->name = color;
@@ -107,7 +108,7 @@ Rule *lineToRule(char *line) {
     return rule;
 }
 
-void printRule(Rule *rule) {
+void printPrettyRules(Rule *rule) {
     printf("Rule> %s:\n", rule->key);
     if (rule->children[0] != 0) {
         for (int i = 0; rule->children[i] != NULL; i++)
@@ -117,39 +118,50 @@ void printRule(Rule *rule) {
     }
 }
 
-int solveFile(char *filepath) {
-    printf("%s\n", filepath);
-
+void rulesFromFile(char *filepath) {
     FILE *fp = fopen(filepath, "r");
 
     if (fp == NULL) {
         perror("Failed: ");
-        return 1;
+        exit(0);
     }
-
-    printf("Processing %s...\n", filepath);
 
     char lines[MAXSIZELINE];
     int nrules = 0;
     while (fgets(lines, sizeof(lines), fp) != NULL) {
         rules[nrules] = lineToRule(lines);
-        printRule(rules[nrules]);
         rules[nrules + 1] = NULL;
         nrules++;
     }
 
-    printf("How many rules processed: %d\n", nrules);
-
     fclose(fp);
+ }
 
-    return 0;
+void printGraphvizOfRules() {
+    printf("digraph Rules {\n");
+    for (int i = 0 ; rules[i] != NULL; i++) {
+        if (rules[i]->children[0] != NULL) {
+            for (int j = 0; rules[i]->children[j] != NULL; j++) {
+                printf("\t\"%s\" -> \"%s\";\n", rules[i]->key, rules[i]->children[j]->name);
+            }
+        } else {
+            printf("\t\"%s\" -> \"no bags\";\n", rules[i]->key);
+        }
+    }
+    printf("}\n");
 }
+
+
+void solveFile(char *filepath) {
+    rulesFromFile(filepath);
+    printGraphvizOfRules();
+}
+
 
 int main(int argc, char *argv[])
 {
     for (int i = 1; i < argc; i++) {
         solveFile(argv[i]);
     }
-
     return 0;
 }

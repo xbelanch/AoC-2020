@@ -7,5 +7,8 @@ INPUT=sample-01.txt
 test: main
 	./main.exe $(INPUT)
 
+viz: main
+	./main.exe $(INPUT) > rules.dot
+
 main: main.c
 	$(CC) $(CXXFLAGS) -o main main.c
