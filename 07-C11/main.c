@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "yastring.h"
 
 #define MAXCHILDRENSIZE 32
-#define MAXSIZELINES 512
+#define MAXSIZELINE 512
+#define MAXSIZERULES 1024
 
 typedef struct child {
     char *name;
@@ -11,45 +13,17 @@ typedef struct child {
 } Child;
 
 typedef struct rule {
-    char *name;
-    int count;
-    Child children[MAXCHILDRENSIZE];
+    char *key;
+    Child *children[MAXCHILDRENSIZE];
 } Rule;
 
-// grabbed from: https://stackoverflow.com/questions/47116974/remove-a-substring-from-a-string-in-c
-char *strremove(char *str, const char *sub) {
-    size_t len = strlen(sub);
-    if (len > 0) {
-        char *p = str;
-        while ((p = strstr(p, sub)) != NULL) {
-            memmove(p, p + len, strlen(p + len) + 1);
-        }
-    }
-    return str;
-}
+Rule *rules[MAXSIZERULES];
 
-// grabbed from: https://stackoverflow.com/questions/8512958/is-there-a-windows-variant-of-strsep-function
-char* strsplit(char** stringp, const char* delim)
-{
-    char* start = *stringp;
-    char* p;
+Rule *lineToRule(char *line) {
 
-    p = (start != NULL) ? strpbrk(start, delim) : NULL;
+    // create a blank rule
+    Rule *rule = (Rule*)malloc(sizeof(Rule));
 
-    if (p == NULL)
-        {
-            *stringp = NULL;
-        }
-    else
-        {
-            *p = '\0';
-            *stringp = p + 1;
-        }
-
-    return start;
-}
-
-Rule lineToRule(char *line) {
     size_t len = 0;
 
     // discard carriage return or new line
@@ -67,41 +41,43 @@ Rule lineToRule(char *line) {
     strncpy(container, pch, strlen(pch));
     container[strlen(container) - 1] = '\0'; // remove last dot
 
-    // get rule
-    char *rulename = malloc(sizeof(char) * strlen(line) + 1);
+    // get key rule
+    char *key = malloc(sizeof(char) * strlen(line) + 1);
     len = strlen(line) - strlen(pch) - strlen(delimiter);
-    strncpy(rulename, line, len);
-    rulename[len - 1] = '\0'; // remove last space
+    strncpy(key, line, len);
+    key[len - 1] = '\0'; // remove last space
 
     // trim bag word from rule and container
-    strremove(rulename, " bags");
-    strremove(rulename, " bag");
+    strremove(key, " bags");
+    strremove(key, " bag");
     strremove(container, " bags");
     strremove(container, " bag");
 
+    // assign key to rule
+    rule->key = key;
+
     // split container in several entries or bags
-    Rule rule;
-    rule.name = rulename;
-    char *bag;
-    int count = 0;
+    char *bag = malloc(sizeof(char) * MAXSIZELINE);
+    int nchild = 0;
     while ((bag = strsplit(&container, ",")) != NULL) {
         if (bag[0] == ' ') {
             bag++;
         }
 
-
         if (strcmp(bag, "no other") == 0) {
-            printf("No bags found\n");
-            rule.count = 0;
+            rule->children[0] = NULL;
             break;
         } else {
+            // create a children
+            Child *child = (Child*)malloc(sizeof(Child));
+
             // get amount of bags
             len = strlen(bag) - strlen(strstr(bag, " "));
             char *number = malloc(sizeof(char) * strlen(bag) + 1);
             strncpy(number, bag, len);
             number[len] = '\0';
             int amount = atoi(number);
-            rule.children[count].amount = amount;
+            child->amount = amount;
 
             // get name of bags
             char *pstr = strstr(bag, " ");
@@ -115,25 +91,29 @@ Rule lineToRule(char *line) {
                 char *color = malloc(sizeof(char) * strlen(pstr) + 1);
                 strncpy(color, pstr, len);
                 color[len] = '\0';
-                rule.children[count].name =color;
+                child->name = color;
             } else {
-                rule.children[count].name = pstr;
+                child->name = pstr;
             }
 
+            // Add child to rule
+            rule->children[nchild] = child;
+            rule->children[nchild + 1] = NULL;
+            nchild++;
         }
-        count++;
     }
 
-    // Store how many contain
-    rule.count = count;
-
+    free(bag);
     return rule;
 }
 
-void printRule(Rule rule) {
-    printf("Rule> %s:\n", rule.name);
-    for (int i = 0; i < rule.count; i++) {
-        printf("  %d of %s\n", rule.children[i].amount, rule.children[i].name);
+void printRule(Rule *rule) {
+    printf("Rule> %s:\n", rule->key);
+    if (rule->children[0] != 0) {
+        for (int i = 0; rule->children[i] != NULL; i++)
+            printf("  %d of %s\n", rule->children[i]->amount, rule->children[i]->name);
+    } else {
+        printf( "  contain no other bags\n");
     }
 }
 
@@ -147,13 +127,18 @@ int solveFile(char *filepath) {
         return 1;
     }
 
-    char lines[MAXSIZELINES];
+    printf("Processing %s...\n", filepath);
+
+    char lines[MAXSIZELINE];
+    int nrules = 0;
     while (fgets(lines, sizeof(lines), fp) != NULL) {
-        printf("%s", lines);
-        Rule *rule = malloc(sizeof(Rule));
-        *rule = lineToRule(lines);
-        printRule(*rule);
+        rules[nrules] = lineToRule(lines);
+        printRule(rules[nrules]);
+        rules[nrules + 1] = NULL;
+        nrules++;
     }
+
+    printf("How many rules processed: %d\n", nrules);
 
     fclose(fp);
 
@@ -165,7 +150,6 @@ int main(int argc, char *argv[])
     for (int i = 1; i < argc; i++) {
         solveFile(argv[i]);
     }
-
 
     return 0;
 }
