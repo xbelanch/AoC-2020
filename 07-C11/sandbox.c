@@ -16,6 +16,16 @@ typedef struct rule {
     struct rule *next;
 } Rule;
 
+typedef struct visited {
+    char *color;
+    struct visited *next;
+} Visited;
+
+typedef struct list {
+    char *color;
+    struct list *next;
+} List;
+
 Rule *createNewRule(char *color) {
     Rule *rule = (Rule*)malloc(sizeof(Rule));
     if (rule == NULL)
@@ -24,6 +34,18 @@ Rule *createNewRule(char *color) {
     rule->color = color;
     rule->contain = NULL;
     return rule;
+}
+
+int addRuleToList(Rule **rules, Rule *rule) {
+    if (*rules == NULL) {
+        *rules = rule;
+        rule->next = NULL;
+    }
+    else {
+        rule->next = *rules;
+        *rules = rule;
+    }
+    return 0;
 }
 
 Child *createNewChild(char *color, int amount) {
@@ -52,24 +74,13 @@ int addChildToRule(Rule *rule, Child *child) {
     return 0;
 }
 
-int addRuleToList(Rule **rules, Rule *rule) {
-    if (*rules == NULL) {
-        *rules = rule;
-        rule->next = NULL;
-    }
-    else {
-        rule->next = *rules;
-        *rules = rule;
-    }
-    return 0;
-}
 
 size_t printRuleContainer(Rule *rule) {
-    Child *child = rule->contain;
+    Child *ptr = rule->contain;
     size_t length;
-    while (child != NULL) {
-        printf("%d of %s\n", child->amount, child->color);
-        child = child->next;
+    while (ptr != NULL) {
+        printf("%d of %s\n", ptr->amount, ptr->color);
+        ptr = ptr->next;
         length++;
     }
     return length;
@@ -96,7 +107,58 @@ void printListOfRules(Rule *rules) {
     }
 }
 
-void testingLinkedList() {
+int isVisited(Visited *visited, char *color) {
+    for (Visited *ptr = visited; ptr != NULL; ptr = ptr->next) {
+        printf("%s : %s\n", ptr->color, color);
+        if (strcmp(ptr->color, color) == 0) {
+            printf("Match!\n");
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void printVisitedList(Visited *visited) {
+    printf("Visited colors: ");
+    for (Visited *v = visited; v != NULL; v = v->next) {
+        printf("%s ", v->color);
+    }
+    printf("\n");
+}
+
+int lengthVisitedList(Visited *visited) {
+    Visited *ptr = visited;
+    int length = 0;
+    while (ptr != NULL) {
+        ptr = ptr->next;
+        length++;
+    }
+    return length;
+}
+
+// given a rules and color for matching
+// return the name of rules of colors that have almost one of that color
+void findContainers(Rule *rules, char *color, char **result) {
+
+    for (Rule *rl_ptr = rules; rl_ptr != NULL; rl_ptr = rl_ptr->next) {
+        Child *chld_ptr = rl_ptr->contain;
+        if (chld_ptr != NULL) { // avoid rules of bags thats doesnt have any bag color
+            for (; chld_ptr != NULL; chld_ptr = chld_ptr->next) {
+                if (strcmp(chld_ptr->color, color) == 0) { // !match
+                    *result = (char*) (malloc(sizeof(char) * strlen(color)));
+                    *result = rl_ptr->color; // store the color rule bag that contain the that color
+                    result++;
+                    *result = NULL;
+                    findContainers(rules, rl_ptr->color, result);
+                    break;
+                }
+            }
+        }
+    }
+
+}
+
+int testingLinkedList() {
     Rule *rules = NULL; // Initialize list of rules
     Rule *rule = NULL;
     Child *child = NULL;
@@ -116,7 +178,7 @@ void testingLinkedList() {
     addRuleToList(&rules, rule);
 
     rule = createNewRule("bright white");
-    child = createNewChild("shiny bag", 1);
+    child = createNewChild("shiny gold", 1);
     addChildToRule(rule, child);
     addRuleToList(&rules, rule);
 
@@ -154,10 +216,22 @@ void testingLinkedList() {
     rule = createNewRule("dotted black");
     addRuleToList(&rules, rule);
 
-    printListOfRules(rules);
+    /* printListOfRules(rules); */
+    printf("Length of rules: %lld\n", lengthListOfRules(rules));
 
-    printf("Length of rules: %lld", lengthListOfRules(rules));
+    char **result = (char**) malloc(sizeof(char));
+    char *color = "shiny gold"; // start color
+    // Recursion...
+    findContainers(rules, color, result);
 
+    int solution = 0;
+    for (char **color = result; *color != NULL; color++) {
+        printf("%s, ", *color);
+        solution++;
+    }
+
+    printf("len: %d\n", solution);
+    return solution;
 }
 
 
