@@ -137,7 +137,7 @@ void findContainers(Rule *rules, char *color, Container **container) {
     }
 }
 
-void countBags(Rule *rules, char *color, Visited **visited) {
+void countBagsPartOne(Rule *rules, char *color, Visited **visited) {
     int found = 0;
 
     if (*visited == NULL) {
@@ -167,8 +167,22 @@ void countBags(Rule *rules, char *color, Visited **visited) {
 
     // Recursion is coming!
     for (Container *ptr = container; ptr != NULL; ptr = ptr->next) {
-        countBags(rules, ptr->rule, visited);
+        countBagsPartOne(rules, ptr->rule, visited);
     }
+}
+
+int countBagsPartTwo(Rule *rules, char *color) {
+    int bags = 0;
+
+    for (Rule *rule = rules; rule != NULL; rule = rule->next) {
+        if (strcmp(rule->color, color) == 0) { // ok
+            for (Child *child = rule->contain; child != NULL; child = child->next) {
+                bags += child->amount + child->amount * countBagsPartTwo(rules, child->color);
+            }
+        }
+    }
+
+    return bags;
 }
 
 Rule *lineToRule(char *line) {
@@ -256,7 +270,7 @@ int solveFilePartOne(char *filepath) {
     printf("Length of rules: %lld\n", lengthListOfRules(rules));
 
     Visited *visited = NULL;
-    countBags(rules, "shiny gold", &visited);
+    countBagsPartOne(rules, "shiny gold", &visited);
 
     // count visited colors
     int len = 0;
@@ -267,6 +281,18 @@ int solveFilePartOne(char *filepath) {
     return len - 1; // minus one because input color
 }
 
+int solveFilePartTwo(char *filepath) {
+    Rule *rules = NULL;
+    createRulesFromFile(&rules, filepath);
+
+    /* printListOfRules(rules); */
+    /* printf("Length of rules: %lld\n", lengthListOfRules(rules)); */
+
+    return countBagsPartTwo(rules, "shiny gold");
+
+}
+
+
 int main(int argc, char *argv[])
 {
     for (int i = 1; i < argc; i++) {
@@ -274,6 +300,8 @@ int main(int argc, char *argv[])
         int partOne = solveFilePartOne(argv[i]);
         printf("Part one solution: %d\n", partOne);
 
+        int partTwo = solveFilePartTwo(argv[i]);
+        printf("Part two solution: %d\n", partTwo);
     }
     return 0;
 }
