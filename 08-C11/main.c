@@ -5,9 +5,15 @@
 
 #define MAXSIZELINES 1024
 
+typedef enum opcode {
+    NOP = 0,
+    JMP = 1,
+    ACC = 2
+} OPCODE;
+
 typedef struct instruction {
     int index;
-    char *operation;
+    OPCODE operation;
     int argument;
     int visited;
     struct instruction *next;
@@ -18,6 +24,7 @@ typedef struct console {
     Instruction *instructions;
     int size;
     int accumulator;
+    int index;
 } Console;
 
 
@@ -51,10 +58,21 @@ Instruction *getInstructions(char *line) {
     buffer = realloc(buffer, sizeof(char*) * (nspaces + 1));
     buffer[nspaces] = 0;
 
-    // print the result
+    // store the result
+    // sure there's another jai way
     for (int i = 0; buffer[i] != NULL; i++) {
         if (i == 0) {
-            instruction->operation = buffer[i];
+            char* opcode = buffer[i];
+            if (strcmp(opcode, "nop") == 0) {
+                instruction->operation = NOP;
+            } else if (strcmp(opcode,  "acc") == 0) {
+                instruction->operation = ACC;
+            } else if (strcmp(opcode, "jmp") == 0) {
+                instruction->operation = JMP;
+            } else {
+                fprintf(stderr, "Unknow opcode: %s\n", opcode);
+                exit(1);
+            }
         } else {
             instruction->argument = atoi(buffer[i]);
         }
@@ -64,8 +82,59 @@ Instruction *getInstructions(char *line) {
     return instruction;
 }
 
+Instruction *getInstructionByIndex(int index) {
+    Instruction *current = console.boot;
+
+    while (current != NULL) {
+        if (current->index == index)
+            return current;
+        current = current->next;
+    }
+    return NULL;
+}
+
+int executeInstruction(Instruction *instruction) {
+
+    if (!instruction->visited) {
+        instruction->visited = 1;
+    } else {
+        return 1;
+    }
+
+    switch(instruction->operation) {
+    case NOP:
+        /* printf("NOP %d\n", instruction->argument); */
+        console.index++;
+        break;
+    case ACC:
+        /* printf("ACC %d\n", instruction->argument); */
+        console.accumulator += instruction->argument;
+        console.index++;
+        break;
+    case JMP:
+        /* printf("JMP %d\n", instruction->argument); */
+        console.index += instruction->argument;
+        break;
+    default:
+        break;
+    }
+
+    return 0;
+}
+
+void runConsole() {
+    console.index = 0;
+    int stop = 0;
+    int cycles = 0;
+    while (!stop) {
+        stop = executeInstruction(getInstructionByIndex(console.index));
+        cycles++;
+    }
+
+    printf("Console index: %d, accumulator: %d, cycles: %d\n", console.index, console.accumulator, cycles);
+}
+
 void readInput(char *filepath) {
-    printf("Input file: %s\n", filepath);
 
     FILE *fp = fopen(filepath, "rb");
 
@@ -99,18 +168,21 @@ void readInput(char *filepath) {
 
     console.size = index;
     // print console boot code
-    for (Instruction *ptr = console.boot ; ptr != NULL; ptr = ptr->next) {
-        printf("instruction[%d]: %s %d\n", ptr->index, ptr->operation, ptr->argument);
-    }
+    /* for (Instruction *ptr = console.boot ; ptr != NULL; ptr = ptr->next) { */
+    /*     printf("instruction[%d]: %d %d\n", ptr->index, ptr->operation, ptr->argument); */
+    /* } */
+
+    runConsole();
 
     fclose(fp);
 }
 
 int solvePartOne(char *filepath) {
+    printf("Input file: %s\n", filepath);
     initConsole();
     readInput(filepath);
 
-    return 0;
+    return console.accumulator;
 }
 
 
