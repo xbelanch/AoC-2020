@@ -25,13 +25,12 @@ typedef struct console {
     int size;
     int accumulator;
     int index;
+    int count;
 } Console;
-
 
 Console console; // Global, pog
 
 void initConsole() {
-    console.accumulator = 0;
     console.instructions = (Instruction*) malloc(sizeof(Instruction));
 }
 
@@ -78,7 +77,6 @@ Instruction *getInstructions(char *line) {
         }
     }
 
-
     return instruction;
 }
 
@@ -93,37 +91,131 @@ Instruction *getInstructionByIndex(int index) {
     return NULL;
 }
 
+char *translateInstruction(int value) {
+    switch(value) {
+    case NOP: return "NOP";
+    case JMP: return "JMP";
+    case ACC: return "ACC";
+    default: return NULL;
+    }
+}
+
 int executeInstruction(Instruction *instruction) {
 
     if (!instruction->visited) {
         instruction->visited = 1;
     } else {
+        /* printf("last instruction: %d>%s : %d\n", instruction->index, translateInstruction(instruction->operation), instruction->argument); */
         return 1;
     }
 
     switch(instruction->operation) {
     case NOP:
-        /* printf("NOP %d\n", instruction->argument); */
         console.index++;
         break;
     case ACC:
-        /* printf("ACC %d\n", instruction->argument); */
         console.accumulator += instruction->argument;
         console.index++;
         break;
     case JMP:
-        /* printf("JMP %d\n", instruction->argument); */
         console.index += instruction->argument;
         break;
     default:
         break;
     }
 
+    /* printf("%d>%s %d | %d\n", instruction->index, translateInstruction(instruction->operation), instruction->argument, console.count); */
+
+    console.count++;
+
+    if (console.index >= (console.size - 1))
+        return 99;
+
+    return 0;
+}
+
+int repairConsole() {
+
+    int stop = 0;
+    int cycles = 0;
+    console.index = 0;
+    console.count = 1;
+    console.accumulator = 0;
+
+    // need to unvisited all operations
+    for (Instruction *str = console.boot; str != NULL; str = str->next)
+        str->visited = 0;
+
+
+    // collected all NOPs force brute!
+    for (Instruction *ptr = console.boot; ptr != NULL; ptr = ptr->next) {
+        if (ptr->operation == NOP) {
+            ptr->operation = JMP;
+            while (!stop) {
+                stop = executeInstruction(getInstructionByIndex(console.index++));
+                cycles++;
+
+                if (stop == 99) {
+                    // execute last instruction
+                    executeInstruction(getInstructionByIndex(console.index++));
+                    return 0;
+                }
+            }
+            /* printf("!!%d>%s %d\n", ptr->index, translateInstruction(ptr->operation), ptr->argument); */
+            ptr->operation = NOP;
+        }
+        console.index = 0;
+        console.count = 1;
+        console.accumulator = 0;
+        stop = 0;
+        cycles = 0;
+    }
+
+    /* // Reset console */
+    console.index = 0;
+    console.count = 1;
+    console.accumulator = 0;
+    stop = 0;
+    cycles = 0;
+    // Need to unvisited all operations!
+    for (Instruction *str = console.boot; str != NULL; str = str->next)
+        str->visited = 0;
+
+    // collected all JMPs force brute!
+    for (Instruction *ptr = console.boot; ptr != NULL; ptr = ptr->next) {
+        if (ptr->operation == JMP) {
+            /* printf("%d>%s %d\n", ptr->index, translateInstruction(ptr->operation), ptr->argument); */
+            ptr->operation = NOP;
+            while (!stop) {
+                stop = executeInstruction(getInstructionByIndex(console.index));
+                cycles++;
+                if (stop == 99) {
+                    // execute last instruction
+                    executeInstruction(getInstructionByIndex(console.index++));
+                    return 0;
+                };
+            }
+
+            ptr->operation = JMP;
+        }
+        // Reset console
+        console.index = 0;
+        console.count = 1;
+        console.accumulator = 0;
+        stop = 0;
+        cycles = 0;
+        // Need to unvisited all the operations!
+        for (Instruction *str = console.boot; str != NULL; str = str->next)
+            str->visited = 0;
+    }
     return 0;
 }
 
 void runConsole() {
     console.index = 0;
+    console.count = 1;
+    console.accumulator = 0;
+
     int stop = 0;
     int cycles = 0;
     while (!stop) {
@@ -167,24 +259,26 @@ void readInput(char *filepath) {
     }
 
     console.size = index;
-    // print console boot code
-    /* for (Instruction *ptr = console.boot ; ptr != NULL; ptr = ptr->next) { */
-    /*     printf("instruction[%d]: %d %d\n", ptr->index, ptr->operation, ptr->argument); */
-    /* } */
 
-    runConsole();
 
     fclose(fp);
 }
 
 int solvePartOne(char *filepath) {
     printf("Input file: %s\n", filepath);
-    initConsole();
     readInput(filepath);
-
+    initConsole();
+    runConsole();
     return console.accumulator;
 }
 
+int solvePartTwo(char *filepath) {
+    printf("Input file: %s\n", filepath);
+    readInput(filepath);
+    initConsole();
+    repairConsole();
+    return console.accumulator;
+}
 
 int main(int argc, char *argv[])
 {
@@ -192,6 +286,8 @@ int main(int argc, char *argv[])
         assert(argc > 1);
         int solution = solvePartOne(argv[i]);
         printf("Solution for the part one of Day 8: %d\n", solution);
+        solution = solvePartTwo(argv[i]);
+        printf("Solution for the part two of Day 8: %d\n", solution);
     }
     return 0;
 }
