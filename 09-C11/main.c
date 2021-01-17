@@ -8,6 +8,30 @@
 
 unsigned long long int numbers[MAXSIZELINES];
 
+void printValues() {
+    int i = 0;
+    while (numbers[i]) {
+        printf("%d:%llu\n", i + 1, numbers[i]);
+        i++;
+    }
+}
+
+int solveSampleFile(int start, int preamble) {
+    for (int j = start - preamble; j < start; j++) {
+        for (int k = start - preamble; k < start; k++) {
+            if (j != k) {
+                unsigned long long int sum = numbers[j] + numbers[k];
+                if (sum == numbers[start]) {
+                    return 0;
+                }
+            }
+        }
+    }
+    printf("Non match for %llu\n", numbers[start]);
+    return 1;
+}
+
+
 void solveFile(char *filePath) {
     FILE *fp = fopen(filePath, "rb");
 
@@ -37,14 +61,13 @@ void solveFile(char *filePath) {
         index++;
     }
 
-    // Print to stdout the input file
-    int i = 0;
-    while (numbers[i]) {
-        printf("%d:%llu\n", i + 1, numbers[i]);
-        i++;
-    }
-
     fclose(fp);
+
+    int preamble = 25;
+    for (int i = preamble; numbers[i]; i++) {
+        if (solveSampleFile(i, preamble))
+           break;
+    }
 }
 
 int main(int argc, char *argv[])
