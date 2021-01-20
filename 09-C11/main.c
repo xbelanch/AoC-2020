@@ -7,6 +7,7 @@
 #define MAXSIZELINES 2048
 
 unsigned long long int numbers[MAXSIZELINES];
+unsigned long long int range[32];
 
 void printValues() {
     int i = 0;
@@ -14,6 +15,57 @@ void printValues() {
         printf("%d:%llu\n", i + 1, numbers[i]);
         i++;
     }
+}
+
+int findEncryptionWeakness(){
+    unsigned long long lowest;
+    unsigned long long largest;
+    unsigned long long tmp;
+
+    tmp = range[0];
+    lowest = range[0];
+    largest = range[0];
+    for (int i = 1; range[i] != 0; i++) {
+        tmp = range[i];
+        if (tmp < lowest) {
+            lowest = tmp;
+        }
+        if (tmp > largest) {
+            largest = tmp;
+        }
+    }
+    printf("lowest: %llu\n", lowest);
+    printf("largest: %llu\n", largest);
+    printf("Sum of smallest and largest: %llu\n", lowest + largest);
+return 0;
+}
+
+int solvePartTwo(int start, int limit, unsigned long long int match) {
+    unsigned long long int sum = 0;
+    /* unsigned long long int smallest = numbers[start]; */
+    for (int i = start; i < limit; i++) {
+        sum += numbers[i];
+        if (sum == match) {
+            printf("Match: %llu \n", sum);
+            for (int j = start; j < i ; j++) {
+                printf("%llu + ", numbers[j]);
+                range[j - start] = numbers[j];
+            }
+            printf("%llu = %llu\n", numbers[i], match);
+            range[i - start] = numbers[i];
+            // TODO:
+            // find the smallest and largest number
+            // of a contiguous range.
+findEncryptionWeakness();
+
+            return -1;
+        }
+        if (sum > match) {
+            return 0;
+        }
+    }
+
+    return 1;
 }
 
 int solveSampleFile(int start, int preamble) {
@@ -27,12 +79,11 @@ int solveSampleFile(int start, int preamble) {
             }
         }
     }
-    printf("Non match for %llu\n", numbers[start]);
-    return 1;
+    return start;
 }
 
 
-void solveFile(char *filePath) {
+int solveFile(char *filePath, int preamble) {
     FILE *fp = fopen(filePath, "rb");
 
     if (fp == NULL) {
@@ -63,17 +114,35 @@ void solveFile(char *filePath) {
 
     fclose(fp);
 
-    int preamble = 25;
+    int nonmatch = 0;
     for (int i = preamble; numbers[i]; i++) {
-        if (solveSampleFile(i, preamble))
-           break;
+        nonmatch = solveSampleFile(i, preamble);
+        if (nonmatch > 0) {
+            return nonmatch;
+        }
     }
+
+    return 0;
 }
 
 int main(int argc, char *argv[])
 {
+    int solution = 0;
     for (int i = 1; i < argc; i++) {
-        solveFile(argv[i]);
+        if (strcmp("sample-01.txt", argv[i]) == 0) {
+            solution = solveFile(argv[i], 5);
+        } else {
+            solution = solveFile(argv[i], 25);
+        }
+
+        if (solution > 0) {
+            printf("Solution for Part One: %llu\n", numbers[solution]);
+        }
+
+        for (int i = 0; i < MAXSIZELINES; i++) {
+            if (solvePartTwo(i, i + 512, numbers[solution]) < 0)
+                break;
+        }
     }
     return 0;
 }
