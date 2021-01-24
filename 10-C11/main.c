@@ -3,6 +3,52 @@
 #include <string.h>
 
 int adapters[1024];
+int diff_one_jolt = 0;
+int diff_three_jolt = 0;
+
+// Sort the array in ascending order
+// https://www.programmingsimplified.com/c/source-code/c-program-bubble-sort
+// -------------------------------------------------------------------------
+void bubbleSort() {
+    int length = 0;
+    while (adapters[length]) {
+        length++;
+    }
+    printf("length: %d\n", length);
+
+    int c, d, t;
+    for (c = 0 ; c < length - 1; c++) {
+        for (d = 0 ; d < length - c - 1; d++) {
+            if (adapters[d] > adapters[d+1]) {
+                /* Swapping */
+                t         = adapters[d];
+                adapters[d]   = adapters[d+1];
+                adapters[d+1] = t;
+            }
+        }
+    }
+}
+
+int partOne() {
+    bubbleSort();
+    int start = 0;
+    for (int i = 0; adapters[i]; i++) {
+        if (adapters[i] - start == 1) {
+            diff_one_jolt++;
+        } else if (adapters[i] - start == 3) {
+            diff_three_jolt++;
+        }
+        start = adapters[i];
+    }
+
+    printf("There are %d differences of 1 jolt and %d differences of 3 jolts\n", diff_one_jolt, diff_three_jolt + 1);
+    int solution = diff_one_jolt * (diff_three_jolt + 1);
+
+    diff_one_jolt = 0; // reset diff values
+    diff_three_jolt = 0;
+
+    return solution;
+}
 
 void parse_file(FILE *fp) {
     char lines[8];
@@ -36,7 +82,11 @@ int solve_file(char *filepath) {
 
     // print file content for testing purpose
     // ---------------------------------------
-    print_joltage_ratings();
+    /* print_joltage_ratings(); */
+
+    // find solution for part One
+    // --------------------------
+    printf("Solution for part one: %d\n", partOne());
 
     fclose(fp);
     return 0;

@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-Wall -Wextra -std=c11 -pedantic -g
 LIBS=
-INPUT=sample-01.txt
+INPUT=sample-01.txt sample-02.txt tsoding.txt input.txt
 
 .PHONY: all
 
