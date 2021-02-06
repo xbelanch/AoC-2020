@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 
 int adapters[1024];
@@ -14,7 +15,6 @@ void bubbleSort() {
     while (adapters[length]) {
         length++;
     }
-    printf("length: %d\n", length);
 
     int c, d, t;
     for (c = 0 ; c < length - 1; c++) {
@@ -29,6 +29,20 @@ void bubbleSort() {
     }
 }
 
+// Find the length of array of integers
+// ------------------------------------
+int lengthArray(int *array) {
+    int *i;
+    int n = 0;
+    for (i = array; *i; i++) {
+        n++;
+    }
+    return n;
+}
+
+
+// Solution for part One of Day 10
+// -------------------------------
 int partOne() {
     bubbleSort();
     int start = 0;
@@ -49,6 +63,58 @@ int partOne() {
 
     return solution;
 }
+
+uint64_t variations = 0;
+
+void solveArrangements(int index, int len) {
+
+    /* printf("%d, ", adapters[index]); */
+
+    if (adapters[index] == adapters[len - 1]) {
+        /* printf("\n"); */
+        variations++;
+        return;
+    }
+
+    if (adapters[index + 1] - adapters[index] == 1 || adapters[index + 1] - adapters[index] == 3) {
+        solveArrangements(index + 1, len);
+    }
+
+    if (adapters[index + 2] - adapters[index] == 2) {
+        solveArrangements(index + 2, len);
+    }
+
+    if (adapters[index + 3] - adapters[index] == 3) {
+        solveArrangements(index + 3, len);
+    }
+
+}
+
+// Solution for part Two of Day 10
+// -------------------------------
+uint64_t partTwo() {
+
+    // Sort array
+    bubbleSort();
+
+    // Add last number to array
+    int len = lengthArray(adapters);
+    adapters[len] = adapters[len - 1] + 3;
+
+    // Add 0 value at beginning of array
+    len = lengthArray(adapters);
+    for (int i = len; i >= 0; i--) {
+        adapters[i + 1] = adapters[i];
+    }
+
+    len = lengthArray(adapters);
+    adapters[0] = 0;
+
+    solveArrangements(0, len);
+
+    return variations;
+}
+
 
 void parse_file(FILE *fp) {
     char lines[8];
@@ -86,7 +152,11 @@ int solve_file(char *filepath) {
 
     // find solution for part One
     // --------------------------
-    printf("Solution for part one: %d\n", partOne());
+    /* printf("Solution for part one: %d\n", partOne()); */
+
+    // find solution for part Two
+    // --------------------------
+    printf("Solution for part two: %lld\n", partTwo());
 
     fclose(fp);
     return 0;
