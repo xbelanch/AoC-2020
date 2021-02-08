@@ -4,6 +4,7 @@
 #include <string.h>
 
 int adapters[1024];
+int memo[1024];
 int diff_one_jolt = 0;
 int diff_three_jolt = 0;
 
@@ -66,12 +67,16 @@ int partOne() {
 
 uint64_t variations = 0;
 
+
+// Recursion method equals to worst scenario
+// Time complexity exponential
+// -----------------------------------------
 void solveArrangements(int index, int len) {
 
-    /* printf("%d, ", adapters[index]); */
+    printf("%d, ", adapters[index]);
 
     if (adapters[index] == adapters[len - 1]) {
-        /* printf("\n"); */
+        printf("\n");
         variations++;
         return;
     }
@@ -87,7 +92,31 @@ void solveArrangements(int index, int len) {
     if (adapters[index + 3] - adapters[index] == 3) {
         solveArrangements(index + 3, len);
     }
+}
 
+// Dynamic Programming using memoization
+// -------------------------------------
+uint64_t solveTopDown(int n, uint64_t memo[]) {
+
+    if (memo[n] > 0)
+        return memo[n];
+
+    if (adapters[n] - adapters[n - 1] == 3 ||
+        adapters[n] - adapters[n - 1] == 1) {
+        memo[n] += solveTopDown(n - 1, memo);
+    }
+
+    if (adapters[n] - adapters[n - 2] == 2) {
+        memo[n] += solveTopDown(n - 2, memo);
+    }
+
+    if (adapters[n] - adapters[n - 3] == 3) {
+        memo[n] += solveTopDown(n - 3, memo);
+    }
+
+    if (n <= 1) return 1;
+
+    return memo[n];
 }
 
 // Solution for part Two of Day 10
@@ -96,7 +125,6 @@ uint64_t partTwo() {
 
     // Sort array
     bubbleSort();
-
     // Add last number to array
     int len = lengthArray(adapters);
     adapters[len] = adapters[len - 1] + 3;
@@ -110,9 +138,16 @@ uint64_t partTwo() {
     len = lengthArray(adapters);
     adapters[0] = 0;
 
-    solveArrangements(0, len);
+    // initialiaze memo array
+    uint64_t memo[2048];
+    for (int i = 0; i < 2048; i++)
+        memo[i] = 0;
 
-    return variations;
+    uint64_t solution = 0;
+
+    solution += solveTopDown(len - 1, memo);
+
+    return solution;
 }
 
 

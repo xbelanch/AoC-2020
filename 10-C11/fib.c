@@ -21,7 +21,6 @@ uint64_t fib_memoization_method(int n, uint64_t memo[]) {
     return memo[n];
 }
 
-
 int main(int argc, char* argv[])
 {
     for (int i = 1; i < argc; i++) {
