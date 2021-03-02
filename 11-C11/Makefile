@@ -1,7 +1,7 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -std=c11 -pedantic -g
+CFLAGS=-Wall -Wextra -ggdb -std=c11 -pedantic -g
 LIBS=
-INPUTS=sample-02.txt
+INPUTS=sample-01.txt input.txt
 
 .PHONY: test
 test: main $(INPUTS)
