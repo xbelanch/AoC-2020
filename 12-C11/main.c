@@ -18,13 +18,13 @@ typedef struct _instruction {
 } Instruction;
 
 typedef struct _ship {
-    long position[4]; // north, east, south, west
+    int position[4]; // north, east, south, west
     int direction;
-    int waypoint[4]; // notth, east, south, west
+    int waypoint[4]; // north, east, south, west
 } Ship;
 
 void printShipPosition(Ship ship) {
-    printf("Ship position N:%ld, S:%ld, E:%ld, W:%ld\n",
+    printf("Ship position N:%d, S:%d, E:%d, W:%d\n",
            ship.position[NORTH],
            ship.position[SOUTH],
            ship.position[EAST],
