@@ -1,7 +1,6 @@
 CC=gcc
 CFLAGS=-Wall -Wextra -std=c11 -pedantic -ggdb
-LIBS=`pkg-config --libs --cflags sdl2`
-INPUT=sample-01.txt input.txt
+INPUT=sample-01.txt
 
 .PHONY: test
 
