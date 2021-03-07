@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-/* #include <SDL2/SDL.h> */
 
 #define MAXINSTRUCTIONSSIZE 2048
 
@@ -19,16 +18,45 @@ typedef struct _instruction {
 } Instruction;
 
 typedef struct _ship {
-    int position[4]; // north, east, south, west
+    long position[4]; // north, east, south, west
     int direction;
     int waypoint[4]; // notth, east, south, west
 } Ship;
 
+void printShipPosition(Ship ship) {
+    printf("Ship position N:%ld, S:%ld, E:%ld, W:%ld\n",
+           ship.position[NORTH],
+           ship.position[SOUTH],
+           ship.position[EAST],
+           ship.position[WEST]
+           );
+}
+
+void printShipWaypoint(Ship ship) {
+    printf("Ship waypoint N:%d, S:%d, E:%d, W:%d\n",
+           ship.waypoint[NORTH],
+           ship.waypoint[SOUTH],
+           ship.waypoint[EAST],
+           ship.waypoint[WEST]
+           );
+}
 
 void doActionV2(Ship *ship, Instruction instruction) {
     switch(instruction.action) {
     case ('N'): {
         ship->waypoint[NORTH] += instruction.value;
+        break;
+    }
+    case ('E'): {
+        ship->waypoint[EAST] += instruction.value;
+        break;
+    }
+    case ('S'): {
+        ship->waypoint[SOUTH] += instruction.value;
+        break;
+    }
+    case ('W'): {
+        ship->waypoint[WEST] += instruction.value;
         break;
     }
     case('F'): {
@@ -38,16 +66,28 @@ void doActionV2(Ship *ship, Instruction instruction) {
         break;
     }
     case('R'): {
-        int rotate = (instruction.value % 360) / instruction.value;
         int t[4];
         for (int i = 0; i < 4; i++) {
             t[i] = ship->waypoint[i];
         }
+        int rotate =  instruction.value / 90;
         for (int i = 0; i < 4; i++) {
             ship->waypoint[(i + rotate) % 4] = t[i];
         }
         break;
     }
+    case('L'): {
+        int t[4];
+        for (int i = 0; i < 4; i++) {
+            t[i] = ship->waypoint[i];
+        }
+        int rotate =  instruction.value / 90;
+        for (int i = 0; i < 4; i++) {
+            ship->waypoint[i] = t[(i + rotate) % 4];
+        }
+        break;
+    }
+
     }
 }
 
@@ -107,24 +147,6 @@ void doAction(Ship *ship, Instruction instruction) {
     }
 }
 
-void printShipPosition(Ship ship) {
-    printf("Ship position N:%d, S:%d, E:%d, W:%d\n",
-           ship.position[NORTH],
-           ship.position[SOUTH],
-           ship.position[EAST],
-           ship.position[WEST]
-           );
-}
-
-void printShipWaypoint(Ship ship) {
-    printf("Ship waypoint N:%d, S:%d, E:%d, W:%d\n",
-           ship.waypoint[NORTH],
-           ship.waypoint[SOUTH],
-           ship.waypoint[EAST],
-           ship.waypoint[WEST]
-           );
-}
-
 int partOne(Instruction *instructions, int size)
 {
     /* Part One of Day 12 */
@@ -141,16 +163,16 @@ int partOne(Instruction *instructions, int size)
     return solution;
 }
 
-int partTwo(Instruction *instructions, int size)
+long partTwo(Instruction *instructions, int size)
 {
     /* Part One of Day 12 */
     Ship ship = { .position = {0, 0, 0, 0}, .direction = EAST, .waypoint = {1, 10, 0, 0}};
     for (int i = 0; i < size; ++i) {
         doActionV2(&ship, instructions[i]);
-    }
 
+    }
     // Print the solution
-    int solution = abs(ship.position[NORTH] - ship.position[SOUTH]) + abs(ship.position[EAST] - ship.position[WEST]);
+    long solution = abs(ship.position[NORTH] - ship.position[SOUTH]) + abs(ship.position[EAST] - ship.position[WEST]);
 
     return solution;
 }
@@ -170,11 +192,11 @@ int solve_file(const char *filename) {
         fscanf(fp, "%1c%d\r\n", &instructions[size].action, &instructions[size].value);
         size += 1;
     }
-
+    printf("lines: %d\n", size);
     // Solution for part one
     printf("Solution for part One: %d\n", partOne(instructions, size));
     // Solution for part two
-    printf("Solution for part Two: %d\n", partTwo(instructions, size));
+    printf("Solution for part Two: %ld\n", partTwo(instructions, size));
 
     fclose(fp);
     return 0;
