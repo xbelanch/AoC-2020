@@ -2,12 +2,15 @@
 #include <stdio.h>
 #include <stdint.h>
 
-int inverse_modulus(int j, int k) {
+// A naive method to find modular
+// multiplicative inverse of 'j'
+// under modulo 'k'
+int inverse_modulus(uint64_t j, uint64_t k) {
     if (j % k == 1) {
         return 1;
     } else {
         int factor = 2;
-        while (1) {
+        for (;;) {
             int r = (j * factor) % k;
             if (r == 1) {
                 return factor;
@@ -18,6 +21,7 @@ int inverse_modulus(int j, int k) {
     }
 }
 
+
 // Solve this sample from AoC: 67,7,59,61 first occurs at timestamp 754018.
 int main(int argc, char *argv[])
 {
@@ -25,38 +29,31 @@ int main(int argc, char *argv[])
     (void)argv[0];
 
     printf("Chinese Reminder Theorem\n");
-    int v[] = {67, 7, 59, 61};
-    int NN = v[0] * v[1] * v[2] * v[3];
-    int b[] = {0, 6, 57, 58};
-    int N[] = {
-               v[1] * v[2] * v[3],
-               v[0] * v[2] * v[3],
-               v[0] * v[1] * v[3],
-               v[0] * v[1] * v[2]
-    };
+    // It works given 7,13,x,x,59,x,31,19 -> 1068781
+    /* int v[] = {7, 13, 59, 31, 19}; */
+    /* int v[] = {67, 7, 59, 61}; */
+    int v[] = {1789, 37, 47, 1889};
 
-    for (int i = 0; i < (int)(sizeof(N)/sizeof(N[0])) ; i++) {
-        printf("N%d: %d\n", i, N[i]);
-    };
+    uint64_t product = 1;
 
-    int x[4];
-    for (int i = 0; i < (int)(sizeof(N)/sizeof(N[0])); i++) {
-        x[i] = inverse_modulus(N[i], v[i]);
+    for (int i = 0; i < (int)(sizeof(v) / sizeof(v[0])); i++) {
+        product *= v[i];
     }
 
-    for (int i = 0; i < (int)(sizeof(x)/sizeof(x[0])); i++) {
-        printf("x%d: %d\n", i, x[i]);
+    int b[] = {
+                    0,
+                    v[1] - 1,
+                    v[2] - 2,
+                    v[3] - 3
     };
 
-    uint64_t bnx[4];
-    uint64_t r = 0;
-    for (int i = 0; i < 4; i++) {
-        bnx[i] = b[i] * N[i] * x[i];
-        r += bnx[i];
-        printf("bnx[%d] = %lu\n", i, bnx[i]);
-    }
+    uint64_t p;
+    uint64_t sum = 0;
+	for (int i = 0; i < (int)(sizeof(v) / sizeof(v[0])); i++) {
+		p = product / v[i];
+		sum += b[i] * inverse_modulus(p, v[i]) * p;
+	}
+    printf("Wow: %lu\n", sum % product);
 
-    printf("r: %lu\n", r);
-    printf("Result? %lu", r % NN);
-    return 0;
+   return 0;
 }
