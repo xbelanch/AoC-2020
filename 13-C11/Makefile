@@ -1,6 +1,6 @@
 CFLAGS=-Wall -Wextra -std=c11 -pedantic -ggdb -Wsign-compare
 LIBS=
-INPUT=sample-01.txt sample-02.txt
+INPUT=sample-01.txt sample-02.txt sample-03.txt input.txt
 
 .PHONY: all
 
