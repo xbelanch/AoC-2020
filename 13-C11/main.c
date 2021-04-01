@@ -47,8 +47,6 @@ int inverse_modulus(uint64_t j, uint64_t k) {
 }
 
 uint64_t solutionPartTwo(Bus buses[], int size) {
-
-    uint64_t solution = 0;
     for (int i = 0; i < size; i++) {
         printf("bus id: %d, offset: %d\n", buses[i].busID, buses[i].offset);
     }
