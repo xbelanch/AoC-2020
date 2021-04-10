@@ -25,6 +25,28 @@ int is_char_equal(char c) {
     return c == '=' ? 1 : 0;
 }
 
+int is_char_mask(char c) {
+    return c == 'X' || c == '0' || c == '1' ? 1 : 0;
+}
+
+int is_string_mask(char *string) {
+    if (string == NULL)
+        return 0;
+
+    if (strlen(string) == 0)
+        return 0;
+
+    for (uint8_t current_char_index = 0;
+         current_char_index < strlen(string);
+         ++current_char_index) {
+        if (!is_char_mask(string[current_char_index]))
+            return 0;
+    }
+
+    return 1;
+}
+
+
 int is_string_integer(char *string) {
     if (string == NULL)
         return 0;

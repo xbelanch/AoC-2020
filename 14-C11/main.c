@@ -7,17 +7,8 @@
 #define MAX_SIZE_LINES 2048
 #define MAX_SIZE_CHARACTERS 512
 
-int todo(){
-    printf("TODO:\n");
-    return 0;
-}
-
-int tokenizer(char **lines) {
-    (void)lines[0];
-    return 0;
-}
-
 int test_string_processing() {
+    assert(is_string_mask("00000X110010111111X000100XX01010000X"));
     assert(is_string_integer("000000000111001101"));
     // assert(is_string_whitespace("        a  ab "));
     assert(is_string_whitespace("            "));
@@ -78,8 +69,20 @@ int dummy_parse_line(char *line) {
 
         buffer[end_char_index - start_char_index] = line[end_char_index];
 
-        if (is_char_variable(line[end_char_index])) {
+        if (is_char_variable(line[end_char_index]) && !variable_found) {
             variable_found = 1;
+        }
+
+        // Get variable 'mask'
+        if (is_char_whitespace(line[end_char_index])) {
+            if (variable_found) {
+                buffer[end_char_index] = '\0';
+                variable = malloc(sizeof(char) * (end_char_index - start_char_index));
+                strcpy(variable, buffer);
+                buffer[0] = '\0';
+                printf("variable: %s\n", variable);
+                variable_found = 0;
+            }
         }
 
         // Get variable 'mem' and memory address
@@ -108,17 +111,29 @@ int dummy_parse_line(char *line) {
                 printf("value: %s\n", number);
                 number_value_found = 0;
             }
-        } else { // @TODO: get mask
-
         }
 
         // Get value number
+        if (is_char_equal(line[end_char_index])) {
+            // value is numeric
+            if (is_char_numeric(line[end_char_index + 2])) {
+                end_char_index += 1;
+                start_char_index = end_char_index + 1;
+                found_some_value = 1;
+                buffer[0] = '\0';
+            }
+
+            // mask value
+            if (is_char_mask(line[end_char_index + 2])) {
+                end_char_index += 1;
+                start_char_index = end_char_index + 1;
+                found_some_value = 1;
+                buffer[0] = '\0';
+            }
+        }
+
         if (is_char_equal(line[end_char_index]) &&
             is_char_numeric(line[end_char_index + 2])) {
-            end_char_index += 1;
-            start_char_index = end_char_index + 1;
-            found_some_value = 1;
-            buffer[0] = '\0';
         }
 
         if (found_some_value && line[end_char_index] == '\n') {
