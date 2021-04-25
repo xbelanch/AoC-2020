@@ -1,8 +1,11 @@
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <stdint.h>
+#include <inttypes.h>
+#include <errno.h>
 
 typedef struct {
     char *value;
@@ -115,7 +118,15 @@ int solve_file(char *filename) {
             printf("%d: ", line);
 
             if (strcmp(variable.name, "mem") == 0) {
-                printf("memory at addres %s equals to %s\n", memory.address, number.value);
+                uintmax_t num_address =strtoimax(memory.address, NULL, 10);
+                if (num_address == UINT64_MAX && errno == ERANGE)
+                    return (0);
+
+                uintmax_t num_value = strtoimax(number.value, NULL, 10);
+                if (num_value == UINT64_MAX && errno == ERANGE)
+                    return (0);
+
+                printf("memory at addres %ju equals to %ju\n", num_address, num_value);
             }
 
             if (strcmp(variable.name, "mask") == 0) {
@@ -138,10 +149,66 @@ int solve_file(char *filename) {
     return (1);
 }
 
+// The bitmask is always given as a string of 36 bits
+#define bitmask_t_size 36
+int number_in_binary_format[bitmask_t_size] = {0};
+
+int numb10_to_numb2(int64_t num) {
+    int b, i = 0;
+    while (num != 0) {
+        b = num % 2;
+        num = num / 2;
+        number_in_binary_format[i] = b;
+        i++;
+    }
+    return (0);
+}
+
+int64_t numb2_to_numb10(int *num) {
+    uint64_t decimal = 0, i = 0, rem;
+    while (i < bitmask_t_size - 1) {
+        rem = num[i] % 10;
+        num[i] /= 10;
+        decimal += rem * pow(2, i);
+        ++i;
+    }
+    return decimal;
+}
+
+int apply_mask(char *mask) {
+    printf("Apply mask: %s\n", mask);
+    for (int i = bitmask_t_size - 1; i >= 0; --i) {
+        if (mask[i] != 'X') {
+            number_in_binary_format[bitmask_t_size - i - 1] =  mask[i] - '0';
+        }
+    }
+    return (0);
+}
+
+
 int main(int argc, char *argv[])
 {
     for (int i = 1; i < argc; i++) {
-        solve_file(argv[i]);
+        // solve_file(argv[i]);
     }
+
+    numb10_to_numb2(101);
+
+    printf("Number in binary format: ");
+    for (int i = bitmask_t_size - 1; i >= 0; --i) {
+        printf("%d", number_in_binary_format[i]);
+    }
+
+    printf("\n");
+    apply_mask("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX1XXXX0X");
+
+    printf("Number in binary format: ");
+    for (int i = bitmask_t_size - 1; i >= 0; --i) {
+        printf("%d", number_in_binary_format[i]);
+    }
+
+    int64_t num = numb2_to_numb10(number_in_binary_format);
+    printf("\nBinary to base 10: %llu\n", num);
+
     return 0;
 }
