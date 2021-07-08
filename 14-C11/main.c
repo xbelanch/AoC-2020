@@ -12,8 +12,26 @@ Line lines[MAX_SIZE_LINES];
 
 int parse_input_file(int size_lines) {
     for (int i = 0; i < size_lines; ++i) {
-            fprintf(stdout, "%u: %s\n", i, lines[i].text);
+        fprintf(stdout, "%u: %s\n", i, lines[i].text);
+
+        if (0 == strncmp(lines[i].text, "mem", 3)) {
+            // Extract memory address and assigned value
+            fprintf(stdout, "address: %c\n", lines[i].text[4]);
+            size_t len = strlen(lines[i].text) - 8;
+            char *mem = (char *)malloc(sizeof(char) * len);
+            char *ptr = lines[i].text + 8;
+            memcpy(mem, ptr, len);
+            fprintf(stdout, "value: %s\n", mem);
+        } else {
+            // Extract mask value
+            size_t len = strlen(lines[i].text) - 7;
+            char *mask = (char *)malloc(sizeof(char) * len);
+            char *ptr = lines[i].text + 7;
+            memcpy(mask, ptr, len);
+            fprintf(stdout, "value: %s\n", mask);
+        }
     }
+    fprintf(stdout, "Total number of lines: %d\n", size_lines);
     return 0;
 }
 
