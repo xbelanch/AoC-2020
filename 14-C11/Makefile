@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -std=c11 -pedantic -g
+CFLAGS=-Wall -Wextra -std=c11 -pedantic -ggdb
 LIBS=
 INPUT=sample-01.txt
 
