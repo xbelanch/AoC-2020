@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int input_file(char *filename){
     int error = -1;
@@ -12,8 +13,17 @@ int input_file(char *filename){
     }
 
     int c = fgetc(input_file);
+    char* string = (char *)malloc(sizeof(char) * 512);
+    size_t i = 0;
+    size_t line = 0;
     while (EOF != c) {
-        fprintf(stdout, "%c", c);
+        string[i++] = c;
+        if ('\n' == c) {
+            string[i-1] = '\0';
+            fprintf(stdout, "%lu: %s\n", line, string);
+            i = 0; line++;
+            string[i] = '\0';
+        }
         c = fgetc(input_file);
     }
 
