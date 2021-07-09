@@ -15,6 +15,45 @@ typedef struct line {
 
 Line lines[MAX_SIZE_LINES];
 size_t Memory[USHRT_MAX];
+int *memory_table_lookup;
+
+// Stolen from https://www.tutorialspoint.com/c_standard_library/c_function_qsort.htm
+static int cmpfunc (const void * a, const void * b) {
+   return ( *(int*)a - *(int*)b );
+}
+
+int set_memory_table_lookup(int size_lines) {
+    int count = 0;
+    memory_table_lookup = malloc(sizeof(int) * size_lines);
+
+    for (int i = 0; i < size_lines; ++i) {
+        if (!lines[i].mask) {
+            memory_table_lookup[count] = lines[i].addr;
+            count++;
+        }
+    }
+
+    // sort memory_table before we remove duplicated addresses
+    qsort(memory_table_lookup, count, sizeof(int), cmpfunc);
+
+    // Remove duplicated addresses memory values
+    int *tmp = malloc(sizeof(int) * count);
+    int len = 0;
+    for (int i = 0; i < count -1; ++i) {
+        if (memory_table_lookup[i] != memory_table_lookup[i + 1]) {
+            tmp[len++] = memory_table_lookup[i];
+        }
+    }
+    tmp[len++] = memory_table_lookup[count - 1];
+    tmp = realloc(tmp, len * sizeof(tmp[0]));
+
+    printf("len: %d\n", len);
+    memory_table_lookup = realloc(memory_table_lookup, len * sizeof(tmp[0]));
+    for (int i = 0; i < len; i++)
+        memory_table_lookup[i] = tmp[i];
+
+    return 0;
+}
 
 int mask_value_op(char *mask, size_t value) {
     size_t len = strlen(mask);
@@ -30,7 +69,6 @@ int mask_value_op(char *mask, size_t value) {
     fprintf(stdout, "New value: %lu\n", value);
     return 0;
 }
-
 
 int parse_input_file(int size_lines) {
     for (int i = 0; i < size_lines; ++i) {
@@ -101,13 +139,8 @@ int input_file(char *filename){
         c = fgetc(input_file);
     }
 
-    // Testing area
     parse_input_file(nline);
-    mask_value_op(lines[0].mask, 0);
-    mask_value_op(lines[0].mask, 101);
-    mask_value_op(lines[0].mask, 11);
-    mask_value_op("00000X110010111111X000100XX01010000X", 231);
-    mask_value_op("00000X110010111111X000100XX01010000X", 435);
+    set_memory_table_lookup(nline);
 
     int success = fclose(input_file);
     return success;
