@@ -15,7 +15,7 @@ int parse_input_file(int size_lines) {
         fprintf(stdout, "%u: %s\n", i, lines[i].text);
 
         if (0 == strncmp(lines[i].text, "mem", 3)) {
-            // Extract memory address and assigned value
+            // Extract memory address value
             char *p_open_bracket = strchr(lines[i].text, '[');
             char *p_close_bracket = strchr(lines[i].text, ']');
             size_t diff = p_close_bracket - p_open_bracket;
@@ -23,6 +23,15 @@ int parse_input_file(int size_lines) {
             char *ptr = lines[i].text + 4; // mem[
             memcpy(mem, ptr, diff - 1);
             fprintf(stdout, "address memory value: %s\n", mem);
+
+            // Extract assigned memory value
+            char *p_equal = strchr(lines[i].text, '=');
+            diff = p_equal - lines[i].text;
+            size_t len = strlen(lines[i].text) - (diff + 2);
+            char *value = (char *)malloc(sizeof(char) * len);
+            ptr = lines[i].text + diff + 2;
+            memcpy(value, ptr, len);
+            fprintf(stdout, "memory value assigned: %s\n", value);
         } else {
             // Extract mask value
             size_t len = strlen(lines[i].text) - 7;
