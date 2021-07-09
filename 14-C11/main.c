@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
+#include <math.h>
 
 #define MAX_SIZE_LINES 1024
 
@@ -12,18 +14,23 @@ typedef struct line {
 } Line;
 
 Line lines[MAX_SIZE_LINES];
+size_t Memory[USHRT_MAX];
 
-int nice_print_input_file(int size_lines) {
-    for (int i = 0; i < size_lines; ++i) {
-        if (!lines[i].mask) {
-            fprintf(stdout, "Assign %lu to %d address memory\n",
-                    lines[i].value, lines[i].addr);
-        } else {
-            fprintf(stdout, "Mask value is equal to %s\n", lines[i].mask);
+int mask_value_op(char *mask, size_t value) {
+    size_t len = strlen(mask);
+    for (int i = len; i >= 0; --i) {
+        int pos = len - i - 1;
+        if (mask[i] == '1') {
+            value |= (int)pow(2, pos);
+        }
+        if (mask[i] == '0') {
+            value -= (value & (int)pow(2, pos));
         }
     }
+    fprintf(stdout, "New value: %lu\n", value);
     return 0;
 }
+
 
 int parse_input_file(int size_lines) {
     for (int i = 0; i < size_lines; ++i) {
@@ -50,6 +57,9 @@ int parse_input_file(int size_lines) {
             ptr = lines[i].text + diff + 2;
             memcpy(value, ptr, len);
             lines[i].value = atoll(value);
+
+            // Assign value to memory address
+            Memory[lines[i].addr] = lines[i].value;
 
         } else {
             // Extract mask value
@@ -91,8 +101,13 @@ int input_file(char *filename){
         c = fgetc(input_file);
     }
 
+    // Testing area
     parse_input_file(nline);
-    nice_print_input_file(nline);
+    mask_value_op(lines[0].mask, 0);
+    mask_value_op(lines[0].mask, 101);
+    mask_value_op(lines[0].mask, 11);
+    mask_value_op("00000X110010111111X000100XX01010000X", 231);
+    mask_value_op("00000X110010111111X000100XX01010000X", 435);
 
     int success = fclose(input_file);
     return success;
