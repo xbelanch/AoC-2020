@@ -6,15 +6,33 @@
 
 typedef struct line {
     char* text;
+    char* mask;
+    int addr;
+    size_t value;
 } Line;
 
 Line lines[MAX_SIZE_LINES];
 
+int nice_print_input_file(int size_lines) {
+    for (int i = 0; i < size_lines; ++i) {
+        if (!lines[i].mask) {
+            fprintf(stdout, "Assign %lu to %d address memory\n",
+                    lines[i].value, lines[i].addr);
+        } else {
+            fprintf(stdout, "Mask value is equal to %s\n", lines[i].mask);
+        }
+    }
+    return 0;
+}
+
 int parse_input_file(int size_lines) {
     for (int i = 0; i < size_lines; ++i) {
-        fprintf(stdout, "%u: %s\n", i, lines[i].text);
+        // fprintf(stdout, "%u: %s\n", i, lines[i].text);
 
         if (0 == strncmp(lines[i].text, "mem", 3)) {
+            // Set mask to NULL
+            lines[i].mask = NULL;
+
             // Extract memory address value
             char *p_open_bracket = strchr(lines[i].text, '[');
             char *p_close_bracket = strchr(lines[i].text, ']');
@@ -22,7 +40,7 @@ int parse_input_file(int size_lines) {
             char *mem = (char *)malloc(sizeof(char) * (diff - 1));
             char *ptr = lines[i].text + 4; // mem[
             memcpy(mem, ptr, diff - 1);
-            fprintf(stdout, "address memory value: %s\n", mem);
+            lines[i].addr = atoi(mem);
 
             // Extract assigned memory value
             char *p_equal = strchr(lines[i].text, '=');
@@ -31,14 +49,14 @@ int parse_input_file(int size_lines) {
             char *value = (char *)malloc(sizeof(char) * len);
             ptr = lines[i].text + diff + 2;
             memcpy(value, ptr, len);
-            fprintf(stdout, "memory value assigned: %s\n", value);
+            lines[i].value = atoll(value);
+
         } else {
             // Extract mask value
             size_t len = strlen(lines[i].text) - 7;
-            char *mask = (char *)malloc(sizeof(char) * len);
+            lines[i].mask = (char *)malloc(sizeof(char) * len);
             char *ptr = lines[i].text + 7;
-            memcpy(mask, ptr, len);
-            fprintf(stdout, "value: %s\n", mask);
+            memcpy(lines[i].mask, ptr, len);
         }
     }
     fprintf(stdout, "Total number of lines: %d\n", size_lines);
@@ -74,6 +92,7 @@ int input_file(char *filename){
     }
 
     parse_input_file(nline);
+    nice_print_input_file(nline);
 
     int success = fclose(input_file);
     return success;
