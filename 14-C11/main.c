@@ -16,11 +16,20 @@ typedef struct line {
 Line lines[MAX_SIZE_LINES];
 size_t Memory[USHRT_MAX];
 int *memory_table_lookup;
-size_t len_memory_table_lookup;
+int len_memory_table_lookup;
 
 // Stolen from https://www.tutorialspoint.com/c_standard_library/c_function_qsort.htm
 static int cmpfunc (const void * a, const void * b) {
    return ( *(int*)a - *(int*)b );
+}
+
+static char *decimal2binary(size_t value) {
+    char *binary = malloc(sizeof(char) * 31);
+    for (int i = 31; i >= 0; --i) {
+        int k = value >> i;
+        binary[31 - i] = k & 1 ? '1' : '0';
+    }
+    return binary;
 }
 
 size_t mask_value_op(char *mask, size_t value) {
@@ -28,10 +37,10 @@ size_t mask_value_op(char *mask, size_t value) {
     for (int i = len; i >= 0; --i) {
         int pos = len - i - 1;
         if (mask[i] == '1') {
-            value |= (int)pow(2, pos);
+            value |= (size_t)pow(2, pos);
         }
         if (mask[i] == '0') {
-            value -= (value & (int)pow(2, pos));
+            value -= (value & (size_t)pow(2, pos));
         }
     }
     // fprintf(stdout, "New value: %lu\n", value);
@@ -43,17 +52,16 @@ int partOne(int size_lines) {
     size_t solution = 0;
     for (int i = 0; i < size_lines; ++i) {
         if (!lines[i].mask) {
+            fprintf(stdout, "%lu in binary:\t%s\n", lines[i].value, decimal2binary(lines[i].value));
             // Apply mask to assigned addresses values
             size_t value = mask_value_op(mask, lines[i].value);
             Memory[lines[i].addr] = value;
         } else {
             // Update mask
             mask = lines[i].mask;
-            printf("mask: %s\n", mask);
         }
     }
     for (int i = 0; i < len_memory_table_lookup; ++i) {
-        fprintf(stdout, "%lu\n", Memory[memory_table_lookup[i]]);
         solution += Memory[memory_table_lookup[i]];
     }
 
