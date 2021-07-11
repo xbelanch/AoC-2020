@@ -25,18 +25,18 @@ static int cmpfunc (const void * a, const void * b) {
 
 static char *decimal2binary(size_t value) {
     char *binary = malloc(sizeof(char) * 63);
-    for (int i = 63; i >= 0; --i) {
+    for (int i = 35; i >= 0; --i) {
         int k = value >> i;
-        binary[63 - i] = k & 1 ? '1' : '0';
+        binary[35 - i] = k & 1 ? '1' : '0';
     }
     return binary;
 }
 
 static size_t binary2decimal(char *value) {
     size_t decimal = 0;
-    for (int i = 63; i >= 0; --i) {
+    for (int i = 35; i >= 0; --i) {
         if (value[i] == '1')
-            decimal += 1 << (63 - i);
+            decimal += 1 << (35 - i);
     }
     return decimal;
 }
@@ -44,7 +44,7 @@ static size_t binary2decimal(char *value) {
 static char *bitmask_op(char* mask, char *value) {
     for (int i = 35; i >= 0; --i) {
         if (mask[35 - i] != 'X')
-            value[63 - i] = mask[35 - i];
+            value[35 - i] = mask[35 - i];
     }
     return value;
 }
@@ -65,6 +65,7 @@ int partOne(int size_lines) {
     }
     for (int i = 0; i < len_memory_table_lookup; ++i) {
         solution += Memory[memory_table_lookup[i]];
+        printf("[%d]: %lu\n", memory_table_lookup[i], Memory[memory_table_lookup[i]]);
     }
 
     return solution;
