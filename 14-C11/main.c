@@ -24,26 +24,28 @@ static int cmpfunc (const void * a, const void * b) {
 }
 
 static char *decimal2binary(size_t value) {
-    char *binary = malloc(sizeof(char) * 31);
-    for (int i = 31; i >= 0; --i) {
+    char *binary = malloc(sizeof(char) * 63);
+    for (int i = 63; i >= 0; --i) {
         int k = value >> i;
-        binary[31 - i] = k & 1 ? '1' : '0';
+        binary[63 - i] = k & 1 ? '1' : '0';
     }
     return binary;
 }
 
-size_t mask_value_op(char *mask, size_t value) {
-    size_t len = strlen(mask);
-    for (int i = len; i >= 0; --i) {
-        int pos = len - i - 1;
-        if (mask[i] == '1') {
-            value |= (size_t)pow(2, pos);
-        }
-        if (mask[i] == '0') {
-            value -= (value & (size_t)pow(2, pos));
-        }
+static size_t binary2decimal(char *value) {
+    size_t decimal = 0;
+    for (int i = 63; i >= 0; --i) {
+        if (value[i] == '1')
+            decimal += 1 << (63 - i);
     }
-    // fprintf(stdout, "New value: %lu\n", value);
+    return decimal;
+}
+
+static char *bitmask_op(char* mask, char *value) {
+    for (int i = 35; i >= 0; --i) {
+        if (mask[35 - i] != 'X')
+            value[63 - i] = mask[35 - i];
+    }
     return value;
 }
 
@@ -52,9 +54,9 @@ int partOne(int size_lines) {
     size_t solution = 0;
     for (int i = 0; i < size_lines; ++i) {
         if (!lines[i].mask) {
-            fprintf(stdout, "%lu in binary:\t%s\n", lines[i].value, decimal2binary(lines[i].value));
-            // Apply mask to assigned addresses values
-            size_t value = mask_value_op(mask, lines[i].value);
+            char *binary = decimal2binary(lines[i].value);
+            binary = bitmask_op(mask, binary);
+            size_t value = binary2decimal(binary);
             Memory[lines[i].addr] = value;
         } else {
             // Update mask
