@@ -16,10 +16,48 @@ typedef struct line {
 Line lines[MAX_SIZE_LINES];
 size_t Memory[USHRT_MAX];
 int *memory_table_lookup;
+size_t len_memory_table_lookup;
 
 // Stolen from https://www.tutorialspoint.com/c_standard_library/c_function_qsort.htm
 static int cmpfunc (const void * a, const void * b) {
    return ( *(int*)a - *(int*)b );
+}
+
+size_t mask_value_op(char *mask, size_t value) {
+    size_t len = strlen(mask);
+    for (int i = len; i >= 0; --i) {
+        int pos = len - i - 1;
+        if (mask[i] == '1') {
+            value |= (int)pow(2, pos);
+        }
+        if (mask[i] == '0') {
+            value -= (value & (int)pow(2, pos));
+        }
+    }
+    // fprintf(stdout, "New value: %lu\n", value);
+    return value;
+}
+
+int partOne(int size_lines) {
+    char *mask = 0;
+    size_t solution = 0;
+    for (int i = 0; i < size_lines; ++i) {
+        if (!lines[i].mask) {
+            // Apply mask to assigned addresses values
+            size_t value = mask_value_op(mask, lines[i].value);
+            Memory[lines[i].addr] = value;
+        } else {
+            // Update mask
+            mask = lines[i].mask;
+            printf("mask: %s\n", mask);
+        }
+    }
+    for (int i = 0; i < len_memory_table_lookup; ++i) {
+        fprintf(stdout, "%lu\n", Memory[memory_table_lookup[i]]);
+        solution += Memory[memory_table_lookup[i]];
+    }
+
+    return solution;
 }
 
 int set_memory_table_lookup(int size_lines) {
@@ -47,26 +85,11 @@ int set_memory_table_lookup(int size_lines) {
     tmp[len++] = memory_table_lookup[count - 1];
     tmp = realloc(tmp, len * sizeof(tmp[0]));
 
-    printf("len: %d\n", len);
     memory_table_lookup = realloc(memory_table_lookup, len * sizeof(tmp[0]));
     for (int i = 0; i < len; i++)
         memory_table_lookup[i] = tmp[i];
 
-    return 0;
-}
-
-int mask_value_op(char *mask, size_t value) {
-    size_t len = strlen(mask);
-    for (int i = len; i >= 0; --i) {
-        int pos = len - i - 1;
-        if (mask[i] == '1') {
-            value |= (int)pow(2, pos);
-        }
-        if (mask[i] == '0') {
-            value -= (value & (int)pow(2, pos));
-        }
-    }
-    fprintf(stdout, "New value: %lu\n", value);
+    len_memory_table_lookup = len;
     return 0;
 }
 
@@ -141,6 +164,8 @@ int input_file(char *filename){
 
     parse_input_file(nline);
     set_memory_table_lookup(nline);
+    size_t solution = partOne(nline);
+    fprintf(stdout, "Solution part One: %lu\n", solution);
 
     int success = fclose(input_file);
     return success;
