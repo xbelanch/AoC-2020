@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-#include <math.h>
 
 #define MAX_SIZE_LINES 1024
 
@@ -36,7 +35,8 @@ static size_t binary2decimal(char *value) {
     size_t decimal = 0;
     for (int i = 35; i >= 0; --i) {
         if (value[i] == '1') {
-            decimal += pow(2, 35 - i);
+            // decimal += pow(2, 35 - i);
+            decimal += 1UL << (35 - i);
         }
     }
     return decimal;
@@ -50,28 +50,31 @@ static char *bitmask_op(char* mask, char *value) {
     return value;
 }
 
-int partOne(int size_lines) {
+int log_memory_table_lookup() {
+    for (int i = 0; i < len_memory_table_lookup; ++i) {
+        int addr = memory_table_lookup[i];
+        fprintf(stdout, "[%d]= %lu\n", addr, Memory[addr]);
+    }
+    return 0;
+}
+
+size_t partOne(int size_lines) {
     char *mask = 0;
     size_t solution = 0;
     for (int i = 0; i < size_lines; ++i) {
         if (!lines[i].mask) {
             char *binary = decimal2binary(lines[i].value);
-            printf("binary input: \t\t%s\n", binary);
             char *bitmasked_value = bitmask_op(mask, binary);
-            printf("binary output: \t\t%s\n", bitmasked_value);
             size_t value = binary2decimal(bitmasked_value);
             Memory[lines[i].addr] = value;
         } else {
-            // Update mask
             mask = lines[i].mask;
-            printf("mask: \t\t\t\t%s\n", mask);
         }
     }
     for (int i = 0; i < len_memory_table_lookup; ++i) {
         solution += Memory[memory_table_lookup[i]];
-        printf("[%d]: %lu\n", memory_table_lookup[i], Memory[memory_table_lookup[i]]);
     }
-
+    // log_memory_table_lookup();
     return solution;
 }
 
@@ -86,20 +89,20 @@ int set_memory_table_lookup(int size_lines) {
         }
     }
 
-    // sort memory_table before we remove duplicated addresses
+    // Sort memory_table before we remove duplicated addresses
     qsort(memory_table_lookup, count, sizeof(int), cmpfunc);
 
     // Remove duplicated addresses memory values
     int *tmp = malloc(sizeof(int) * count);
     int len = 0;
-    for (int i = 0; i < count -1; ++i) {
+    for (int i = 0; i < count; ++i) {
         if (memory_table_lookup[i] != memory_table_lookup[i + 1]) {
-            tmp[len++] = memory_table_lookup[i];
+            tmp[len] = memory_table_lookup[i];
+            len++;
         }
     }
-    tmp[len++] = memory_table_lookup[count - 1];
-    tmp = realloc(tmp, len * sizeof(tmp[0]));
 
+    tmp = realloc(tmp, len * sizeof(tmp[0]));
     memory_table_lookup = realloc(memory_table_lookup, len * sizeof(tmp[0]));
     for (int i = 0; i < len; i++)
         memory_table_lookup[i] = tmp[i];
@@ -110,8 +113,6 @@ int set_memory_table_lookup(int size_lines) {
 
 int parse_input_file(int size_lines) {
     for (int i = 0; i < size_lines; ++i) {
-        // fprintf(stdout, "%u: %s\n", i, lines[i].text);
-
         if (0 == strncmp(lines[i].text, "mem", 3)) {
             // Set mask to NULL
             lines[i].mask = NULL;
@@ -179,8 +180,7 @@ int input_file(char *filename){
 
     parse_input_file(nline);
     set_memory_table_lookup(nline);
-    size_t solution = partOne(nline);
-    fprintf(stdout, "Solution part One: %lu\n", solution);
+    fprintf(stdout, "Solution part One: %lu\n", partOne(nline));
 
     int success = fclose(input_file);
     return success;

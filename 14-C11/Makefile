@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-Wall -Wextra -std=c11 -pedantic -ggdb
 LIBS=
-INPUT=sample-01.txt
+INPUT= sample-01.txt input.txt
 
 .PHONY: test
 
