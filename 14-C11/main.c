@@ -35,8 +35,9 @@ static char *decimal2binary(size_t value) {
 static size_t binary2decimal(char *value) {
     size_t decimal = 0;
     for (int i = 35; i >= 0; --i) {
-        if (value[i] == '1')
-            decimal += 1 << (35 - i);
+        if (value[i] == '1') {
+            decimal += pow(2, 35 - i);
+        }
     }
     return decimal;
 }
@@ -55,12 +56,15 @@ int partOne(int size_lines) {
     for (int i = 0; i < size_lines; ++i) {
         if (!lines[i].mask) {
             char *binary = decimal2binary(lines[i].value);
-            binary = bitmask_op(mask, binary);
-            size_t value = binary2decimal(binary);
+            printf("binary input: \t\t%s\n", binary);
+            char *bitmasked_value = bitmask_op(mask, binary);
+            printf("binary output: \t\t%s\n", bitmasked_value);
+            size_t value = binary2decimal(bitmasked_value);
             Memory[lines[i].addr] = value;
         } else {
             // Update mask
             mask = lines[i].mask;
+            printf("mask: \t\t\t\t%s\n", mask);
         }
     }
     for (int i = 0; i < len_memory_table_lookup; ++i) {
