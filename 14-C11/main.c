@@ -1,165 +1,196 @@
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <assert.h>
-#include "string_processing.h"
+#include <limits.h>
 
-#define MAX_SIZE_LINES 2048
-#define MAX_SIZE_CHARACTERS 512
+#define MAX_SIZE_LINES 1024
 
-int test_string_processing() {
-    assert(is_string_mask("00000X110010111111X000100XX01010000X"));
-    assert(is_string_integer("000000000111001101"));
-    // assert(is_string_whitespace("        a  ab "));
-    assert(is_string_whitespace("            "));
-    // assert(is_string_integer("729719379a228"));
-    assert(is_string_variable("mem"));
-    assert(is_string_variable("mask"));
+typedef struct line {
+    char* text;
+    char* mask;
+    int addr;
+    size_t value;
+} Line;
+
+Line lines[MAX_SIZE_LINES];
+size_t Memory[USHRT_MAX];
+int *memory_table_lookup;
+int len_memory_table_lookup;
+
+// Stolen from https://www.tutorialspoint.com/c_standard_library/c_function_qsort.htm
+static int cmpfunc (const void * a, const void * b) {
+   return ( *(int*)a - *(int*)b );
+}
+
+static char *decimal2binary(size_t value) {
+    char *binary = malloc(sizeof(char) * 63);
+    for (int i = 35; i >= 0; --i) {
+        int k = value >> i;
+        binary[35 - i] = k & 1 ? '1' : '0';
+    }
+    return binary;
+}
+
+static size_t binary2decimal(char *value) {
+    size_t decimal = 0;
+    for (int i = 35; i >= 0; --i) {
+        if (value[i] == '1') {
+            // decimal += pow(2, 35 - i);
+            decimal += 1UL << (35 - i);
+        }
+    }
+    return decimal;
+}
+
+static char *bitmask_op(char* mask, char *value) {
+    for (int i = 35; i >= 0; --i) {
+        if (mask[35 - i] != 'X')
+            value[35 - i] = mask[35 - i];
+    }
+    return value;
+}
+
+int log_memory_table_lookup() {
+    for (int i = 0; i < len_memory_table_lookup; ++i) {
+        int addr = memory_table_lookup[i];
+        fprintf(stdout, "[%d]= %lu\n", addr, Memory[addr]);
+    }
     return 0;
 }
 
+size_t partOne(int size_lines) {
+    char *mask = 0;
+    size_t solution = 0;
+    for (int i = 0; i < size_lines; ++i) {
+        if (!lines[i].mask) {
+            char *binary = decimal2binary(lines[i].value);
+            char *bitmasked_value = bitmask_op(mask, binary);
+            size_t value = binary2decimal(bitmasked_value);
+            Memory[lines[i].addr] = value;
+        } else {
+            mask = lines[i].mask;
+        }
+    }
+    for (int i = 0; i < len_memory_table_lookup; ++i) {
+        solution += Memory[memory_table_lookup[i]];
+    }
+    // log_memory_table_lookup();
+    return solution;
+}
 
-int solve_file(char *filepath) {
-    printf("%s\n", filepath);
-    FILE *fp = fopen(filepath, "r");
-    char chr;
-    char buffer[MAX_SIZE_CHARACTERS];
-    char lines[MAX_SIZE_LINES][MAX_SIZE_CHARACTERS];
-    char *ptr = buffer;
-    int num = 0;
+int set_memory_table_lookup(int size_lines) {
+    int count = 0;
+    memory_table_lookup = malloc(sizeof(int) * size_lines);
 
-    // read and store the input file
-    while (1) {
-        chr = fgetc(fp);
-        if (feof(fp))
-            break;
-        if (chr == '\n') {
-            *ptr = '\0';
-            strcpy(lines[num++], buffer);
-            ptr = buffer;
+    for (int i = 0; i < size_lines; ++i) {
+        if (!lines[i].mask) {
+            memory_table_lookup[count] = lines[i].addr;
+            count++;
+        }
+    }
+
+    // Sort memory_table before we remove duplicated addresses
+    qsort(memory_table_lookup, count, sizeof(int), cmpfunc);
+
+    // Remove duplicated addresses memory values
+    int *tmp = malloc(sizeof(int) * count);
+    int len = 0;
+    for (int i = 0; i < count; ++i) {
+        if (memory_table_lookup[i] != memory_table_lookup[i + 1]) {
+            tmp[len] = memory_table_lookup[i];
+            len++;
+        }
+    }
+
+    tmp = realloc(tmp, len * sizeof(tmp[0]));
+    memory_table_lookup = realloc(memory_table_lookup, len * sizeof(tmp[0]));
+    for (int i = 0; i < len; i++)
+        memory_table_lookup[i] = tmp[i];
+
+    len_memory_table_lookup = len;
+    return 0;
+}
+
+int parse_input_file(int size_lines) {
+    for (int i = 0; i < size_lines; ++i) {
+        if (0 == strncmp(lines[i].text, "mem", 3)) {
+            // Set mask to NULL
+            lines[i].mask = NULL;
+
+            // Extract memory address value
+            char *p_open_bracket = strchr(lines[i].text, '[');
+            char *p_close_bracket = strchr(lines[i].text, ']');
+            size_t diff = p_close_bracket - p_open_bracket;
+            char *mem = (char *)malloc(sizeof(char) * (diff - 1));
+            char *ptr = lines[i].text + 4; // mem[
+            memcpy(mem, ptr, diff - 1);
+            lines[i].addr = atoi(mem);
+
+            // Extract assigned memory value
+            char *p_equal = strchr(lines[i].text, '=');
+            diff = p_equal - lines[i].text;
+            size_t len = strlen(lines[i].text) - (diff + 2);
+            char *value = (char *)malloc(sizeof(char) * len);
+            ptr = lines[i].text + diff + 2;
+            memcpy(value, ptr, len);
+            lines[i].value = atoll(value);
+
+            // Assign value to memory address
+            Memory[lines[i].addr] = lines[i].value;
 
         } else {
-            *ptr++ = chr;
+            // Extract mask value
+            size_t len = strlen(lines[i].text) - 7;
+            lines[i].mask = (char *)malloc(sizeof(char) * len);
+            char *ptr = lines[i].text + 7;
+            memcpy(lines[i].mask, ptr, len);
         }
     }
-
-    // print to stdout
-    for (int i = 0; i < num; i++) {
-        fprintf(stdout, "line[%d]: %s\n", i, lines[i]);
-    }
-
-    fclose(fp);
+    fprintf(stdout, "Total number of lines: %d\n", size_lines);
     return 0;
 }
 
-int dummy_parse_line(char *line) {
-    if (line == NULL)
-        return 0;
-    if (strlen(line) == 0)
-        return 0;
+int input_file(char *filename){
+    int error = -1;
+    printf("Open file: %s\n", filename);
+    FILE *input_file = fopen(filename, "rb");
 
-    int start_char_index = 0;
-    int variable_found = 0;
-    int number_value_found = 0;
-    int found_some_value = 0;
-    char *variable;
-    char *number;
-    char buffer[128];
-    for (uint8_t end_char_index = 0; end_char_index < strlen(line); ++end_char_index) {
-
-        buffer[end_char_index - start_char_index] = line[end_char_index];
-
-        if (is_char_variable(line[end_char_index]) && !variable_found) {
-            variable_found = 1;
-        }
-
-        // Get variable 'mask'
-        if (is_char_whitespace(line[end_char_index])) {
-            if (variable_found) {
-                buffer[end_char_index] = '\0';
-                variable = malloc(sizeof(char) * (end_char_index - start_char_index));
-                strcpy(variable, buffer);
-                buffer[0] = '\0';
-                printf("variable: %s\n", variable);
-                variable_found = 0;
-            }
-        }
-
-        // Get variable 'mem' and memory address
-        if (is_char_delimiter(line[end_char_index])) {
-            if (variable_found) {
-                buffer[end_char_index] = '\0';
-                variable = malloc(sizeof(char) * (end_char_index - start_char_index));
-                strcpy(variable, buffer);
-
-                buffer[0] = 0;
-                printf("variable: %s\n", variable);
-
-                variable_found = 0;
-            }
-
-            if (line[end_char_index] == '[' && is_char_numeric(line[end_char_index + 1])) {
-                number_value_found = 1;
-                start_char_index = end_char_index + 1;
-            }
-
-            if (line[end_char_index] == ']' && number_value_found) {
-                buffer[end_char_index - start_char_index] = '\0';
-                number = malloc(sizeof(char) * (end_char_index - start_char_index));
-                strcpy(number, buffer);
-                buffer[0] = 0;
-                printf("value: %s\n", number);
-                number_value_found = 0;
-            }
-        }
-
-        // Get value number
-        if (is_char_equal(line[end_char_index])) {
-            // value is numeric
-            if (is_char_numeric(line[end_char_index + 2])) {
-                end_char_index += 1;
-                start_char_index = end_char_index + 1;
-                found_some_value = 1;
-                buffer[0] = '\0';
-            }
-
-            // mask value
-            if (is_char_mask(line[end_char_index + 2])) {
-                end_char_index += 1;
-                start_char_index = end_char_index + 1;
-                found_some_value = 1;
-                buffer[0] = '\0';
-            }
-        }
-
-        if (is_char_equal(line[end_char_index]) &&
-            is_char_numeric(line[end_char_index + 2])) {
-        }
-
-        if (found_some_value && line[end_char_index] == '\n') {
-            buffer[end_char_index - start_char_index] = '\0';
-            number = malloc(sizeof(char) * (end_char_index - start_char_index));
-            strcpy(number, buffer);
-            buffer[0] = '\0';
-            printf("equal: %s\n", number);
-            found_some_value = 0;
-        }
+    if (NULL == input_file) {
+        fprintf(stderr, "File %s didn't found!\n", filename);
+        return error;
     }
 
-    return 1;
+    int c = fgetc(input_file);
+    char* string = (char *)malloc(sizeof(char) * 512);
+    size_t i = 0;
+    int nline = 0;
+
+    while (EOF != c) {
+        string[i++] = c;
+        if ('\n' == c) {
+            string[i-1] = '\0';
+            size_t len = strlen(string);
+            lines[nline].text = (char *)malloc(sizeof(char) * len);
+            memcpy(lines[nline].text, string, len);
+            i = 0; nline++;
+            string[i] = '\0';
+        }
+        c = fgetc(input_file);
+    }
+
+    parse_input_file(nline);
+    set_memory_table_lookup(nline);
+    fprintf(stdout, "Solution part One: %lu\n", partOne(nline));
+
+    int success = fclose(input_file);
+    return success;
 }
 
 
 int main(int argc, char *argv[])
 {
-    (void)argc;
-    (void)argv[0];
-    // for (int i = 1; i < argc; i++) {
-    //     solve_file(argv[i]);
-    // }
-
-    test_string_processing();
-    dummy_parse_line("mem[8] = 11\n");
-    dummy_parse_line("mask = XXXXXXXXXXXXXXXXXXXXXXXXXXXXX1XXXX0X\n");
+    for (int i = 1; i < argc; ++i) {
+        input_file(argv[i]);
+    }
     return 0;
 }
