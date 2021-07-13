@@ -4,6 +4,7 @@
 #include <limits.h>
 
 #define MAX_SIZE_LINES 1024
+#define BITMASK_SIZE 35
 
 typedef struct line {
     char* text;
@@ -22,30 +23,29 @@ static int cmpfunc (const void * a, const void * b) {
    return ( *(int*)a - *(int*)b );
 }
 
-static char *decimal2binary(size_t value) {
-    char *binary = malloc(sizeof(char) * 63);
-    for (int i = 35; i >= 0; --i) {
+static char *bin(size_t value) {
+    char *binary = malloc(sizeof(char) * BITMASK_SIZE);
+    for (int i = BITMASK_SIZE; i >= 0; --i) {
         int k = value >> i;
-        binary[35 - i] = k & 1 ? '1' : '0';
+        binary[BITMASK_SIZE - i] = k & 1 ? '1' : '0';
     }
     return binary;
 }
 
-static size_t binary2decimal(char *value) {
+static size_t bin2dec(char *value) {
     size_t decimal = 0;
-    for (int i = 35; i >= 0; --i) {
+    for (int i = BITMASK_SIZE; i >= 0; --i) {
         if (value[i] == '1') {
-            // decimal += pow(2, 35 - i);
-            decimal += 1UL << (35 - i);
+            decimal += 1UL << (BITMASK_SIZE - i);
         }
     }
     return decimal;
 }
 
 static char *bitmask_op(char* mask, char *value) {
-    for (int i = 35; i >= 0; --i) {
-        if (mask[35 - i] != 'X')
-            value[35 - i] = mask[35 - i];
+    for (int i = BITMASK_SIZE; i >= 0; --i) {
+        if (mask[BITMASK_SIZE - i] != 'X')
+            value[BITMASK_SIZE - i] = mask[BITMASK_SIZE - i];
     }
     return value;
 }
@@ -63,9 +63,9 @@ size_t partOne(int size_lines) {
     size_t solution = 0;
     for (int i = 0; i < size_lines; ++i) {
         if (!lines[i].mask) {
-            char *binary = decimal2binary(lines[i].value);
+            char *binary = bin(lines[i].value);
             char *bitmasked_value = bitmask_op(mask, binary);
-            size_t value = binary2decimal(bitmasked_value);
+            size_t value = bin2dec(bitmasked_value);
             Memory[lines[i].addr] = value;
         } else {
             mask = lines[i].mask;
