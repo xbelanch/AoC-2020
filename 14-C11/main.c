@@ -78,6 +78,34 @@ size_t partOne(int size_lines) {
     return solution;
 }
 
+size_t partTwo(int size_lines) {
+    size_t solution = 0;
+    size_t addr = 26;
+    char *mask = "00000000000000000000000000000000X0XX";
+    char *address = bin(addr);
+    fprintf(stdout, "address: %s\n", address);
+    for (int i = BITMASK_SIZE; i >= 0; --i)
+        address[BITMASK_SIZE - i] = mask[BITMASK_SIZE - i] != 'X' ? mask[BITMASK_SIZE - i] | address[BITMASK_SIZE - i] : 'X';
+
+    fprintf(stdout, "address: %s\n", address);
+
+    // Create the stack of memory addresses due to floating bit mask (X)
+    size_t max_stack_size = 128;
+    int count = 0;
+    char *stack = malloc(sizeof(char) * max_stack_size);
+
+    /* Welcome to the world of permutation algorithms!?
+    X1101X
+    ------
+    first X floating bit = [011010, 011011, 111010, 111011]
+    last X floating bit = [011010, 111010, 011011, 111011]
+
+    it's easy to see that there're four duplicated addresses so we need to run out of them
+    */
+
+    return solution;
+}
+
 int set_memory_table_lookup(int size_lines) {
     int count = 0;
     memory_table_lookup = malloc(sizeof(int) * size_lines);
@@ -180,7 +208,8 @@ int input_file(char *filename){
 
     parse_input_file(nline);
     set_memory_table_lookup(nline);
-    fprintf(stdout, "Solution part One: %lu\n", partOne(nline));
+    // fprintf(stdout, "Solution part One: %lu\n", partOne(nline));
+    fprintf(stdout, "Solution part One: %lu\n", partTwo(nline));
 
     int success = fclose(input_file);
     return success;
