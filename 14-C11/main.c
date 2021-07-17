@@ -14,7 +14,7 @@ typedef struct line {
 } Line;
 
 Line lines[MAX_SIZE_LINES];
-size_t Memory[USHRT_MAX];
+size_t Memory[SHRT_MAX];
 int *memory_table_lookup;
 int len_memory_table_lookup;
 
@@ -78,7 +78,7 @@ size_t partOne(int size_lines) {
     return solution;
 }
 
-void perm_address(char *mask, size_t value) {
+int perm_address(char *mask, size_t value) {
     // check how floating bits the mask have
     int floating_bits_count = 0;
     for (int i = BITMASK_SIZE; i >= 0 ; --i) {
@@ -98,11 +98,8 @@ void perm_address(char *mask, size_t value) {
         perms[i] = malloc(sizeof(char) * BITMASK_SIZE);
 
     char *variations[max_perms];
-    // TODO: Implement permutations of '1' and '0' of floating bits size
-    variations[0] = "00";
-    variations[1] = "01";
-    variations[2] = "10";
-    variations[3] = "11";
+    for (int i = 0; i < max_perms; ++i)
+        variations[i] = bin(i);
 
     char *last = malloc(sizeof(char)* BITMASK_SIZE);
     last = mask;
@@ -111,7 +108,7 @@ void perm_address(char *mask, size_t value) {
     for (int i = 0; i < max_perms; ++i) {
         for (int j = BITMASK_SIZE; j >= 0; --j) {
             if (last[j] == 'X') {
-                perms[i][j] = variations[i][idx];
+                perms[i][j] = variations[i][BITMASK_SIZE - idx];
                 idx++;
             } else {
                 perms[i][j] = mask[j];
@@ -139,11 +136,6 @@ size_t partTwo(int size_lines) {
         address[BITMASK_SIZE - i] = mask[BITMASK_SIZE - i] != 'X' ? mask[BITMASK_SIZE - i] | address[BITMASK_SIZE - i] : 'X';
 
     fprintf(stdout, "address: %s\n", address);
-
-    // Create the stack of memory addresses due to floating bit mask (X)
-    size_t max_stack_size = 128;
-    int count = 0;
-    char *stack = malloc(sizeof(char) * max_stack_size);
 
     perm_address(address, 100);
     return solution;
