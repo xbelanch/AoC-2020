@@ -78,10 +78,61 @@ size_t partOne(int size_lines) {
     return solution;
 }
 
+void perm_address(char *mask, size_t value) {
+    // check how floating bits the mask have
+    int floating_bits_count = 0;
+    for (int i = BITMASK_SIZE; i >= 0 ; --i) {
+        if (mask[i] == 'X')
+            floating_bits_count++;
+    }
+
+    // no floating bits?
+    if (0 == floating_bits_count)
+        return 0;
+
+    // set the max number of mask permutations
+    int max_perms = 1 << floating_bits_count;
+    printf("max_perms: %d\n", max_perms);
+    char *perms[max_perms];
+    for (int i = 0; i < max_perms; ++i)
+        perms[i] = malloc(sizeof(char) * BITMASK_SIZE);
+
+    char *variations[max_perms];
+    // TODO: Implement permutations of '1' and '0' of floating bits size
+    variations[0] = "00";
+    variations[1] = "01";
+    variations[2] = "10";
+    variations[3] = "11";
+
+    char *last = malloc(sizeof(char)* BITMASK_SIZE);
+    last = mask;
+
+    int idx = 0;
+    for (int i = 0; i < max_perms; ++i) {
+        for (int j = BITMASK_SIZE; j >= 0; --j) {
+            if (last[j] == 'X') {
+                perms[i][j] = variations[i][idx];
+                idx++;
+            } else {
+                perms[i][j] = mask[j];
+            }
+        }
+        idx = 0;
+    }
+
+    printf("[%s]\n", mask);
+    for (int i = 0; i < max_perms; ++i) {
+        Memory[bin2dec(perms[i])] = value;
+        printf("[%s] = %lu\n", perms[i], bin2dec(perms[i]));
+    }
+
+    return 0;
+}
+
 size_t partTwo(int size_lines) {
     size_t solution = 0;
-    size_t addr = 26;
-    char *mask = "00000000000000000000000000000000X0XX";
+    size_t addr = 42;
+    char *mask = "000000000000000000000000000000X1001X";
     char *address = bin(addr);
     fprintf(stdout, "address: %s\n", address);
     for (int i = BITMASK_SIZE; i >= 0; --i)
@@ -94,15 +145,7 @@ size_t partTwo(int size_lines) {
     int count = 0;
     char *stack = malloc(sizeof(char) * max_stack_size);
 
-    /* Welcome to the world of permutation algorithms!?
-    X1101X
-    ------
-    first X floating bit = [011010, 011011, 111010, 111011]
-    last X floating bit = [011010, 111010, 011011, 111011]
-
-    it's easy to see that there're four duplicated addresses so we need to run out of them
-    */
-
+    perm_address(address, 100);
     return solution;
 }
 
