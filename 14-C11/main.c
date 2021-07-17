@@ -14,9 +14,11 @@ typedef struct line {
 } Line;
 
 Line lines[MAX_SIZE_LINES];
-size_t Memory[SHRT_MAX];
+size_t Memory[USHRT_MAX];
 int *memory_table_lookup;
 int len_memory_table_lookup;
+size_t *memory_table_lookup_part2;
+size_t len_memory_table_lookup_part2 = 0;
 
 // Stolen from https://www.tutorialspoint.com/c_standard_library/c_function_qsort.htm
 static int cmpfunc (const void * a, const void * b) {
@@ -58,28 +60,8 @@ int log_memory_table_lookup() {
     return 0;
 }
 
-size_t partOne(int size_lines) {
-    char *mask = 0;
-    size_t solution = 0;
-    for (int i = 0; i < size_lines; ++i) {
-        if (!lines[i].mask) {
-            char *binary = bin(lines[i].value);
-            char *bitmasked_value = bitmask_op(mask, binary);
-            size_t value = bin2dec(bitmasked_value);
-            Memory[lines[i].addr] = value;
-        } else {
-            mask = lines[i].mask;
-        }
-    }
-    for (int i = 0; i < len_memory_table_lookup; ++i) {
-        solution += Memory[memory_table_lookup[i]];
-    }
-    // log_memory_table_lookup();
-    return solution;
-}
-
-int perm_address(char *mask, size_t value) {
-    // check how floating bits the mask have
+int permutation_addresses(char *mask, size_t value) {
+    // Check how floating bits the mask have
     int floating_bits_count = 0;
     for (int i = BITMASK_SIZE; i >= 0 ; --i) {
         if (mask[i] == 'X')
@@ -90,7 +72,7 @@ int perm_address(char *mask, size_t value) {
     if (0 == floating_bits_count)
         return 0;
 
-    // set the max number of mask permutations
+    // Set the max number of mask permutations
     int max_perms = 1 << floating_bits_count;
     printf("max_perms: %d\n", max_perms);
     char *perms[max_perms];
@@ -119,25 +101,75 @@ int perm_address(char *mask, size_t value) {
 
     printf("[%s]\n", mask);
     for (int i = 0; i < max_perms; ++i) {
-        Memory[bin2dec(perms[i])] = value;
-        printf("[%s] = %lu\n", perms[i], bin2dec(perms[i]));
+        size_t addr = bin2dec(perms[i]);
+        Memory[addr] = value;
+        memory_table_lookup_part2[len_memory_table_lookup_part2++] = addr;
+        // printf("[%s] = %lu = %lu\n", perms[i], addr, value);
     }
 
     return 0;
 }
 
-size_t partTwo(int size_lines) {
+size_t partOne(int size_lines) {
+    char *mask = 0;
     size_t solution = 0;
-    size_t addr = 42;
-    char *mask = "000000000000000000000000000000X1001X";
-    char *address = bin(addr);
-    fprintf(stdout, "address: %s\n", address);
-    for (int i = BITMASK_SIZE; i >= 0; --i)
-        address[BITMASK_SIZE - i] = mask[BITMASK_SIZE - i] != 'X' ? mask[BITMASK_SIZE - i] | address[BITMASK_SIZE - i] : 'X';
+    for (int i = 0; i < size_lines; ++i) {
+        if (!lines[i].mask) {
+            char *binary = bin(lines[i].value);
+            char *bitmasked_value = bitmask_op(mask, binary);
+            size_t value = bin2dec(bitmasked_value);
+            Memory[lines[i].addr] = value;
+        } else {
+            mask = lines[i].mask;
+        }
+    }
+    for (int i = 0; i < len_memory_table_lookup; ++i) {
+        solution += Memory[memory_table_lookup[i]];
+    }
+    // log_memory_table_lookup();
+    return solution;
+}
 
-    fprintf(stdout, "address: %s\n", address);
+size_t partTwo(int size_lines) {
+    memory_table_lookup_part2 = malloc(sizeof(size_t) * USHRT_MAX);
+    char *mask = 0;
+    size_t solution = 0;
+    for (int i = 0; i < size_lines; ++i) {
+        if (!lines[i].mask) {
+            // Handling floating bits and apply to main address
+            char *address = bin(lines[i].addr);
+            for (int i = BITMASK_SIZE; i >= 0; --i)
+                address[BITMASK_SIZE - i] = mask[BITMASK_SIZE - i] != 'X' ? mask[BITMASK_SIZE - i] | address[BITMASK_SIZE - i] : 'X';
+            // Call permutations addresses and set value
+            permutation_addresses(address, lines[i].value);
+        } else {
+            mask = lines[i].mask;
+        }
+    }
 
-    perm_address(address, 100);
+    // Sort and remove duplicate address entries in table lookup
+    qsort(memory_table_lookup_part2, len_memory_table_lookup_part2, sizeof(size_t), cmpfunc);
+    size_t *tmp = malloc(sizeof(size_t) * len_memory_table_lookup_part2);
+    size_t len = 0;
+    for (size_t i = 0; i < len_memory_table_lookup_part2; ++i) {
+        if (memory_table_lookup_part2[i] != memory_table_lookup_part2[i + 1]) {
+            tmp[len] = memory_table_lookup_part2[i];
+            len++;
+        }
+    }
+    tmp = realloc(tmp, len * sizeof(tmp[0]));
+    memory_table_lookup_part2 = realloc(memory_table_lookup_part2, len * sizeof(tmp[0]));
+    for (size_t i = 0; i < len; i++)
+        memory_table_lookup_part2[i] = tmp[i];
+    len_memory_table_lookup_part2 = len;
+
+    // Sum all values left in memory at the end of the program
+    for (size_t i = 0; i < len_memory_table_lookup_part2; ++i) {
+        size_t addr = memory_table_lookup_part2[i];
+        printf("[%lu]: %lu\n", addr, Memory[addr]);
+        solution += Memory[addr];
+    }
+
     return solution;
 }
 
@@ -197,10 +229,6 @@ int parse_input_file(int size_lines) {
             ptr = lines[i].text + diff + 2;
             memcpy(value, ptr, len);
             lines[i].value = atoll(value);
-
-            // Assign value to memory address
-            Memory[lines[i].addr] = lines[i].value;
-
         } else {
             // Extract mask value
             size_t len = strlen(lines[i].text) - 7;
@@ -244,7 +272,7 @@ int input_file(char *filename){
     parse_input_file(nline);
     set_memory_table_lookup(nline);
     // fprintf(stdout, "Solution part One: %lu\n", partOne(nline));
-    fprintf(stdout, "Solution part One: %lu\n", partTwo(nline));
+    fprintf(stdout, "Solution part Two: %lu\n", partTwo(nline));
 
     int success = fclose(input_file);
     return success;
