@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "hashmap.h"
+#include "./hashmap.c/hashmap.h"
 
 struct user {
     char *name;
