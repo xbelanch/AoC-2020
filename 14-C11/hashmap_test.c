@@ -22,6 +22,8 @@ int main(int argc, char *argv[])
     (void)argc;
     (void)argv[0];
 
+    struct hashmap *map = hashmap_new(sizeof(Memory), 0, 0, 0, memory_hash, address_compare, NULL);
+
     char *sample_file = "sample-01.txt";
     FILE *input_file = fopen(sample_file, "rb");
     if (NULL == input_file) {
@@ -49,25 +51,37 @@ int main(int argc, char *argv[])
     lines[j].n = -1;
 
     i = 0;
+    size_t addr; size_t val;
     while (lines[i].string) {
+        if (0 == strncmp(lines[i].string, "mem", 3)) {
+            char *p_open_bracket = strchr(lines[i].string, '[');
+            char *p_close_bracket = strchr(lines[i].string, ']');
+            size_t diff = p_close_bracket - p_open_bracket;
+            char *mem = (char *)malloc(sizeof(char) * (diff - 1));
+            char *ptr = lines[i].string + 4; // mem[
+            memcpy(mem, ptr, diff - 1);
+            addr = atoll(mem);
 
+            char *p_equal = strchr(lines[i].string, '=');
+            diff = p_equal - lines[i].string;
+            size_t len = strlen(lines[i].string) - (diff + 2);
+            char *value = (char *)malloc(sizeof(char) * len);
+            ptr = lines[i].string + diff + 2;
+            memcpy(value, ptr, len);
+            val = atoll(value);
+
+            hashmap_set(map, &(Memory){ .addr = addr, .value = val });
+        }
         i++;
     }
 
     fclose(input_file);
 
-    struct hashmap *map = hashmap_new(sizeof(Memory), 0, 0, 0, memory_hash, address_compare, NULL);
-
-    //    hashmap_set(map, &(Memory){ .addr = (1UL << 35), .value = 25 });
-    hashmap_set(map, &(Memory){ .addr = 198299, .value = 10 });
-    hashmap_set(map, &(Memory){ .addr = 22927282, .value = 15 });
-    hashmap_set(map, &(Memory){ .addr = 1UL << 35 + 1, .value = 20 });
-
     Memory *mem;
-    mem = hashmap_get(map, &(Memory){ .addr = 1UL << 35 + 1});
-    printf("Memory value: %lu at addr: %lu\n", mem->value, mem->addr);
-    mem->value = 32003;
-    printf("Memory value: %lu at addr: %lu\n", mem->value, mem->addr);
+    mem = hashmap_get(map, &(Memory){ .addr = 7});
+    fprintf(stdout, "Memory value: %lu at addr: %lu\n", mem->value, mem->addr);
+    mem = hashmap_get(map, &(Memory){ .addr = 8});
+    fprintf(stdout, "Memory value: %lu at addr: %lu\n", mem->value, mem->addr);
 
     hashmap_free(map);
     return 0;
