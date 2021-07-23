@@ -19,7 +19,7 @@ size_t memory_hash(const void *item, uint64_t seed0, uint64_t seed1) {
     return hashmap_sip(memory, sizeof(memory), seed0, seed1);
 }
 
-bool addr_iter(const void *item, void *udata) {
+bool part_one(const void *item, void *udata) {
     const Memory *memory = item;
     // fprintf(stdout, "addr[%lu]: %lu\n", memory->addr, memory->value);
     result += memory->value;
@@ -93,6 +93,10 @@ int main(int argc, char *argv[])
             char *ptr = lines[i].string + 7;
             memcpy(mask, ptr, len);
             // fprintf(stdout, "mask = %s\n", mask);
+#ifdef PART_TWO
+
+#endif
+
         }
         i++;
     }
@@ -101,8 +105,8 @@ int main(int argc, char *argv[])
 
     Memory *mem;
     // Lets iterate over all memory addresses!
-    hashmap_scan(map, addr_iter, NULL);
-    fprintf(stdout, "Solution part One: %lu\n", result);
+    if (hashmap_scan(map, part_one, NULL))
+        fprintf(stdout, "Solution part One: %lu\n", result);
 
     hashmap_free(map);
     return 0;
