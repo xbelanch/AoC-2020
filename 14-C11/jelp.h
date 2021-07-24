@@ -47,7 +47,7 @@ static char *bitmask_op(char* mask, char *value) {
 }
 
 static int parse_input_file(Line *lines, size_t size) {
-    for (int i = 0; i < size; ++i) {
+    for (size_t i = 0; i < size; ++i) {
         if (0 == strncmp(lines[i].string, "mem", 3)) {
             // Set mask to NULL
             // lines[i].mask = NULL;
@@ -77,6 +77,6 @@ static int parse_input_file(Line *lines, size_t size) {
             // memcpy(lines[i].mask, ptr, len);
         }
     }
-    fprintf(stdout, "Total number of lines: %d\n", size);
+    fprintf(stdout, "Total number of lines: %lu\n", size);
     return 0;
 }

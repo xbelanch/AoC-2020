@@ -1,7 +1,6 @@
-CC=gcc
-CFLAGS=-Wall -Wextra -std=c11 -pedantic -ggdb
-LIBS=
-INPUT= sample-01.txt input.txt
+CFLAGS=-std=c11 -pedantic -DPART_TWO -ggdb
+LIBS=./hashmap.c/hashmap.c
+INPUT= input.txt
 
 .PHONY: test
 
