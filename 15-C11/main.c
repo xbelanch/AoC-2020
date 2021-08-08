@@ -17,7 +17,7 @@ typedef struct {
 } Turns;
 
 typedef struct {
-    Turns number[2048];
+    Turns number[2048 * 2048];
     size_t len;
 } NumberPart2;
 
@@ -40,8 +40,8 @@ int main(int argc, char *argv[])
     (void)argv[0];
 
     // Initialize the puzzle
-    char *input_sample_puzzle = "20,0,1,11,6,3";
-    // char *input_sample_puzzle = "3,1,2";
+    // char *input_sample_puzzle = "20,0,1,11,6,3";
+    char *input_sample_puzzle = "3,1,2";
     char *ptr = input_sample_puzzle;
     char *start = input_sample_puzzle;
     size_t turns = 0;
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
     int found = 0;
     int zero = -1;
     size_t solution = 0;
-    while (turns < MAX_TURNS_PART_ONE) {
+    while (turns < MAX_TURNS_PART_TWO) {
         // first time we found that number
         // fprintf(stdout, "Cursor: %lu | with len: %lu | turns: %lu\n",
         //         cursor,
@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
 
                     cursor = i;
                     found = 1;
-                    if (turns + 1 == MAX_TURNS_PART_ONE) {
+                    if (turns + 1 == MAX_TURNS_PART_TWO) {
                         solution = nums.number[i].value;
                     }
                     break;
@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
                 // printf("Found new number (%lu)!\n", delta);
                 nums.number[nums.len].value = delta;
                 nums.number[nums.len].turns[0] = turns + 1;
-                if (turns + 1 == MAX_TURNS_PART_ONE) {
+                if (turns + 1 == MAX_TURNS_PART_TWO) {
                     solution = delta;
                 }
                 nums.number[nums.len].len++;
@@ -154,8 +154,11 @@ int main(int argc, char *argv[])
         }
         found = 0;
         turns++;
+        if (turns % 5000000 == 0) {
+            printf("5000000...\n");
+        }
     }
-    LOG_PART_TWO();
+    // LOG_PART_TWO();
 
     fprintf(stdout, "Solution for part One: %lu\n", solution /* nums.number[nums.len-1].value */ );
 
