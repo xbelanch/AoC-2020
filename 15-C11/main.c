@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_TURNS 2020
-// #define MAX_TURNS 30000000
+#define MAX_TURNS_PART_ONE 2020
+#define MAX_TURNS_PART_TWO 30000000
 
 typedef struct {
     size_t turn;
@@ -12,25 +12,17 @@ typedef struct {
 
 typedef struct {
     size_t value;
-    size_t turns[1024];
+    size_t turns[2];
     size_t len;
 } Turns;
 
 typedef struct {
-    Turns number[1024];
+    Turns number[2048];
     size_t len;
 } NumberPart2;
 
-Number numbers[MAX_TURNS];
+// Number numbers[MAX_TURNS];
 NumberPart2 nums;
-
-void LOG(size_t max) {
-    if (max > MAX_TURNS)
-        return;
-    for (size_t i = 0; i < max; ++i) {
-        fprintf(stdout, "Turn %lu: %lu\n", numbers[i].turn, numbers[i].value);
-    }
-}
 
 void LOG_PART_TWO() {
     for (size_t i = 0; i < nums.len; ++i) {
@@ -42,35 +34,14 @@ void LOG_PART_TWO() {
     }
 }
 
-
-size_t find_last_two_occurrences(size_t number, size_t turn) {
-    Number *occurrences = malloc(sizeof(Number) * 2);
-    size_t found = 0;
-    for (int i = turn; i >= 0; --i) {
-        if (numbers[i].value == number) {
-            occurrences[found].value = numbers[i].value;
-            occurrences[found].turn = numbers[i].turn;
-            found++;
-        }
-
-        if (found == 2) {
-            size_t diff = occurrences[0].turn - occurrences[1].turn;
-            free(occurrences);
-            return diff;
-        }
-    }
-    free(occurrences);
-    return 0;
-}
-
 int main(int argc, char *argv[])
 {
     (void)argc;
     (void)argv[0];
 
     // Initialize the puzzle
-    // char *input_sample_puzzle = "20,0,1,11,6,3";
-    char *input_sample_puzzle = "0,3,6";
+    char *input_sample_puzzle = "20,0,1,11,6,3";
+    // char *input_sample_puzzle = "3,1,2";
     char *ptr = input_sample_puzzle;
     char *start = input_sample_puzzle;
     size_t turns = 0;
@@ -84,9 +55,6 @@ int main(int argc, char *argv[])
             strncpy(val, start, len);
             val[len] = '\0';
             start = ptr + 1;
-            numbers[turns].turn = turns + 1;
-            numbers[turns].value = atoll(val);
-            // Second day
             nums.number[turns].value = atoll(val);
             nums.number[turns].turns[0] = turns + 1;
             nums.number[turns].len++;
@@ -101,10 +69,6 @@ int main(int argc, char *argv[])
 
     // add last data of the input puzzle
     strncpy(val, start, len);
-    numbers[turns].turn = turns + 1;
-    numbers[turns].value = atoll(val);
-
-    // Add last number turn Second day
     nums.number[turns].value = atoll(val);
     nums.number[turns].turns[0] = turns + 1;
     nums.number[turns].len++;
@@ -119,7 +83,7 @@ int main(int argc, char *argv[])
     int found = 0;
     int zero = -1;
     size_t solution = 0;
-    while (turns < 6121) {
+    while (turns < MAX_TURNS_PART_ONE) {
         // first time we found that number
         // fprintf(stdout, "Cursor: %lu | with len: %lu | turns: %lu\n",
         //         cursor,
@@ -132,8 +96,13 @@ int main(int argc, char *argv[])
                 if (nums.number[i].value == 0) {
                     zero = i;
                     size_t len = nums.number[i].len;
-                    nums.number[i].turns[len++] = turns + 1;
-                    nums.number[i].len++;
+                    if (len > 1) {
+                        nums.number[i].turns[0] = nums.number[i].turns[1];
+                        nums.number[i].turns[1] = turns + 1;
+                    } else {
+                        nums.number[i].turns[len] = turns + 1;
+                        nums.number[i].len++;
+                    }
                     cursor = i;
                 }
             }
@@ -154,12 +123,18 @@ int main(int argc, char *argv[])
             for (size_t i = 0; i < nums.len; ++i) {
                 // new number!
                 if (nums.number[i].value == delta) {
-                    size_t _len = nums.number[i].len;
-                    nums.number[i].turns[_len++] = turns + 1;
-                    nums.number[i].len++;
+                    size_t len = nums.number[i].len;
+                    if (len > 1) {
+                        nums.number[i].turns[0] = nums.number[i].turns[1];
+                        nums.number[i].turns[1] = turns + 1;
+                    } else {
+                        nums.number[i].turns[len] = turns + 1;
+                        nums.number[i].len++;
+                    }
+
                     cursor = i;
                     found = 1;
-                    if (turns + 1 == MAX_TURNS) {
+                    if (turns + 1 == MAX_TURNS_PART_ONE) {
                         solution = nums.number[i].value;
                     }
                     break;
@@ -169,7 +144,7 @@ int main(int argc, char *argv[])
                 // printf("Found new number (%lu)!\n", delta);
                 nums.number[nums.len].value = delta;
                 nums.number[nums.len].turns[0] = turns + 1;
-                if (turns + 1 == MAX_TURNS) {
+                if (turns + 1 == MAX_TURNS_PART_ONE) {
                     solution = delta;
                 }
                 nums.number[nums.len].len++;
