@@ -1,131 +1,135 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-size_t ranges[1024][2];
-size_t *buffer;
+typedef struct {
+    size_t min;
+    size_t max;
+} Range;
 
-int isNumber(char c) {
-    return (c >= '0' && c <= '9') ? 1 : 0;
+Range *range;
+size_t srange;
+size_t *nearby_tickets;
+size_t sz_nearby_tickets;
+
+int isDigit(char c) {
+    return (c >= '0' && c <= '9') ? (1) : (0);
 }
 
-int parse_file(char *filename) {
+int isSymbol(char c, char symbol) {
+    return (c == symbol) ? (1) : (0);
+}
+
+int isSpace(char c) {
+    return (c == 32) ? (1) : (0);
+}
+
+int isNewLine(char c) {
+    return (c == '\n' || c == '\r') ? (1) : (0);
+}
+
+int isCharacter(char c) {
+    return (c == 'y' && c <= 'n') ? (1) : (0);
+}
+
+int inRange(Range range, size_t num) {
+    return (num >= range.min && num <= range.max ) ? (1) : (0);
+}
+
+int parse_input_file(char *filename) {
     fprintf(stdout, "Input file: %s\n", filename);
 
     FILE *fp = fopen(filename, "rb");
     if (fp == NULL) {
         fprintf(stdout, "ERROR: Input file %s not found!\n", filename);
-        return 1;
+        return (1);
     }
 
     int c = getc(fp);
-    int lastc = c;
-    size_t cursor = 0;
-    size_t colon = 0;
-    size_t lines = 0;
-    char *number = malloc(sizeof(char) * 64);
-    size_t digit = 0;
-    size_t numbers[128];
-    size_t snumbers = 0;
-    int inRange = 1;
-    int inTickets = 0;
-    size_t maxRange = 0;
+    int lastChar = 0;
+    size_t entrySection = 0;
+    char *number = malloc(sizeof(char) * 32);
+    size_t snumber = 0;
+    range = malloc(sizeof(Range) * 128);
+    srange = 0;
+    nearby_tickets = malloc(sizeof(size_t) * 1024);
+    sz_nearby_tickets = 0;
     while (c != EOF) {
-        if (isNumber(lastc) && c == '\n') {
-            fprintf(stdout, "\n");
-            cursor = 0;
-            colon = 0;
-            lines++;
+        if (isNewLine(c) && isNewLine(lastChar))
+            entrySection++;
 
-            if (inRange) {
-                numbers[snumbers] = atoll(number);
-                digit = 0;
-                number[digit] = '\0';
-                snumbers++;
+        // Get only the range values from input file
+        if (entrySection == 0) {
+            if (isDigit(c)) {
+                number[snumber] = c;
+                snumber++;
+                number[snumber] = '\0';
+            } else if (isSymbol(c, '-') && isDigit(lastChar)) {
+                range[srange].min = atoll(number);
+                number[0] = '\0';
+                snumber = 0;
+            } else if (isSpace(c) && isDigit(lastChar)) {
+                range[srange].max = atoll(number);
+                number[0] = '\0';
+                snumber = 0;
+                srange++;
+            } else if (isNewLine(c) && isDigit(lastChar)) {
+                range[srange].max = atoll(number);
+                number[0] = '\0';
+                snumber = 0;
+                srange++;
             }
-
-        } else if (cursor >= 8 && lastc == 't' && c == ':') {
-            inRange = 0;
-            inTickets++;
-            fprintf(stdout, "---\n");
-        } else if (cursor >= 10 && lastc == 's' && c == ':') {
-            inRange = 0;
-            inTickets++;
-            fprintf(stdout, "---\n");
-        } else if (isNumber(c)) {
-
-            fprintf(stdout, "%c", c);
-            number[digit] = c;
-            digit++;
-
-        } else if (c == '-') {
-
-            if (inRange) {
-                fprintf(stdout, "%c", c);
-                numbers[snumbers] = atoll(number);
-                digit = 0;
-                number[digit] = '\0';
-                snumbers++;
-            }
-
-        } else if (c == ',') {
-            fprintf(stdout, "%c", c);
-        } else if (colon && lastc == 'o' && c == 'r') {
-
-            if (inRange) {
-                fprintf(stdout, " || ");
-                numbers[snumbers] = atoll(number);
-                digit = 0;
-                number[digit] = '\0';
-                snumbers++;
-            }
-
-        } else if (c == ':') {
-            colon = 1;
-        } else if (c == '\n') {
-            cursor = 0;
-            lines++;
-        } else {
-
         }
-        cursor++;
-        lastc = c;
+
+        if (entrySection == 1) {
+            // Oh...
+        }
+
+        if (entrySection == 2) {
+            if (isDigit(c)) {
+                number[snumber++] = c;
+                number[snumber] = '\0';
+            } else if ((isSymbol(c, ',') && isDigit(lastChar)) ||
+                       (isNewLine(c) && isDigit(lastChar))) {
+                nearby_tickets[sz_nearby_tickets++] = atoll(number);
+                number[0] = '\0';
+                snumber = 0;
+            }
+        }
+
+        lastChar = c;
         c = getc(fp);
     }
 
-    // print the ranges
-    for (size_t i = 0; i < snumbers - 1; ++i) {
-        for (size_t j = numbers[i]; j <= numbers[i + 1]; j++) {
-            buffer[j] = j;
-        }
-        ++i;
-    }
-
-    // for (size_t i = 0; i < 51; ++i)
-    //     fprintf(stdout, "%lu: %lu\n", i, buffer[i]);
-
-    size_t result = 0;
-    for (size_t i = 0; i < 50; ++i) {
-        if (buffer[i] != i) {
-            result += i;
-        }
-    }
-
-    fprintf(stdout, "Result: %lu\n", result + 55);
     fclose(fp);
+    return (0);
+}
 
-    return 0;
+size_t solutionPartOne() {
+    size_t solution = 0;
+    for (size_t j = 0; j < sz_nearby_tickets; ++j) {
+        int isTicketInRange = 0;
+        for (size_t i = 0; i < srange; ++i) {
+            if (inRange(range[i], nearby_tickets[j])) {
+                isTicketInRange++;
+                break;
+            }
+        }
+        if (!isTicketInRange) {
+            solution += nearby_tickets[j];
+        }
+    }
+
+    return(solution);
 }
 
 int main(int argc, char *argv[])
 {
+    (void) argc;
+    (void) argv[0];
 
-    buffer = malloc(sizeof(size_t) * 30 * 1000 * 1000);
-    for (size_t i = 0; i < 30 * 1000 * 1000; ++i)
-        buffer[i] = -1;
-
-    for (int i = 1; i < argc; ++i) {
-        parse_file(argv[i]);
-    }
-
-    return 0;
+    char *input_file = "input.txt";
+    parse_input_file(input_file);
+    fprintf(stdout, "Solution for Part One: %lu\n", solutionPartOne());
+    return (0);
 }
