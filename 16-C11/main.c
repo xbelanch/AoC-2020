@@ -8,6 +8,7 @@ typedef struct {
     size_t position;
     size_t *ranges;
     size_t sz_ranges;
+    int match;
 } Range;
 
 Range *range;
@@ -64,6 +65,7 @@ int parse_input_file(char *filename) {
     range[srange].position = 0;
     range[srange].fieldname = (char*)malloc(sizeof(char) * 512);
     range[srange].sz_fieldname = 0;
+    range[srange].match = 0;
 
 
     row = 1;
@@ -105,6 +107,7 @@ int parse_input_file(char *filename) {
                 range[srange].sz_fieldname = 0;
                 range[srange].ranges = (size_t*)malloc(sizeof(size_t) * 128);
                 range[srange].sz_ranges = 0;
+                range[srange].match = 0;
 
             } else if ((isCharacter(c) || (isSpace(c))) &&
                        !(c == 'o' && (isSpace(lastChar))) &&
@@ -160,17 +163,36 @@ int parse_input_file(char *filename) {
 
 size_t solutionPartTwo() {
     size_t solution = 0;
-    for (size_t i = 0; i < sz_myticket; ++i) {
-        fprintf(stdout, "%lu ", myticket[i]);
+    size_t match[srange];
+    // reset match
+    for (size_t k = 0; k < srange; ++k) {
+        match[k] = 0;
     }
-    putchar('\n');
-    for (size_t i = 0; i < srange; ++i) {
-        fprintf(stdout, "position: %lu %s ", range[i].position, range[i].fieldname);
-        for (size_t j = 0; j < range[i].sz_ranges; ++j) {
-            fprintf(stdout, "%lu ", range[i].ranges[j]);
+
+    size_t i, j, column;
+    for (column = 0; column < sz_nearby_tickets; ++column) {
+        for (j = 0; j < (row - 1); ++j) {
+            for (i = 0; i < srange; ++i) {
+                if (inRange(range[i], nearby_tickets[j][column])) {
+                    // fprintf(stdout, "ticket %lu match with %s\n", nearby_tickets[j][column], range[i].fieldname);
+                    match[i]++;
+                }
+            }
         }
-        putchar('\n');
+        // printf("----\n");
+        for (size_t k = 0; k < srange; ++k) {
+            // fprintf(stdout, "%s has %lu hits\n", range[k].fieldname, match[k]);
+            if (match[k] == (row - 1) && !range[k].match) {
+                fprintf(stdout, "%s\n", range[k].fieldname);
+                range[k].match = 1;
+            }
+        }
+        // reset match
+        for (size_t k = 0; k < srange; ++k) {
+            match[k] = 0;
+        }
     }
+
     return solution;
 }
 
@@ -204,9 +226,9 @@ int main(int argc, char *argv[])
     (void) argc;
     (void) argv[0];
 
-    char *input_file = "sample-input2.txt";
+    char *input_file = "input.txt";
     parse_input_file(input_file);
-    fprintf(stdout, "Solution for Part One: %lu\n", solutionPartOne());
+    // fprintf(stdout, "Solution for Part One: %lu\n", solutionPartOne());
     fprintf(stdout, "Solution for Part Two: %lu\n", solutionPartTwo());
     return (0);
 }
