@@ -97,16 +97,16 @@ int parse_input_file(char *filename) {
                 range[srange].ranges[range[srange].sz_ranges++] = atoll(number);
                 number[0] = '\0';
                 snumber = 0;
+                range[srange].position = srange;
                 srange++;
-                //
+
                 range[srange - 1].fieldname[range[srange - 1 ].sz_fieldname] = '\0';
                 range[srange].fieldname = (char*)malloc(sizeof(char) * 128);
                 range[srange].sz_fieldname = 0;
                 range[srange].ranges = (size_t*)malloc(sizeof(size_t) * 128);
                 range[srange].sz_ranges = 0;
 
-            } else if (isCharacter(c)
-                       &&
+            } else if ((isCharacter(c) || (isSpace(c))) &&
                        !(c == 'o' && (isSpace(lastChar))) &&
                        !(c == 'r' && lastChar == 'o'))
                 {
@@ -165,14 +165,12 @@ size_t solutionPartTwo() {
     }
     putchar('\n');
     for (size_t i = 0; i < srange; ++i) {
-        fprintf(stdout, "%s ", range[i].fieldname);
+        fprintf(stdout, "position: %lu %s ", range[i].position, range[i].fieldname);
         for (size_t j = 0; j < range[i].sz_ranges; ++j) {
             fprintf(stdout, "%lu ", range[i].ranges[j]);
         }
         putchar('\n');
     }
-
-
     return solution;
 }
 
@@ -206,7 +204,7 @@ int main(int argc, char *argv[])
     (void) argc;
     (void) argv[0];
 
-    char *input_file = "input.txt";
+    char *input_file = "sample-input2.txt";
     parse_input_file(input_file);
     fprintf(stdout, "Solution for Part One: %lu\n", solutionPartOne());
     fprintf(stdout, "Solution for Part Two: %lu\n", solutionPartTwo());
