@@ -3,9 +3,11 @@
 #include <string.h>
 
 typedef struct {
+    char *fieldname;
+    size_t sz_fieldname;
     size_t position;
-    size_t min;
-    size_t max;
+    size_t *ranges;
+    size_t sz_ranges;
 } Range;
 
 Range *range;
@@ -33,11 +35,12 @@ int isNewLine(char c) {
 }
 
 int isCharacter(char c) {
-    return (c == 'y' && c <= 'n') ? (1) : (0);
+    return (c >= 'a' && c <= 'z') ? (1) : (0);
 }
 
 int inRange(Range range, size_t num) {
-    return (num >= range.min && num <= range.max ) ? (1) : (0);
+    return ((num >= range.ranges[0] && num <= range.ranges[1]) ||
+            (num >= range.ranges[2] && num <= range.ranges[3])) ? (1) : (0);
 }
 
 int parse_input_file(char *filename) {
@@ -56,15 +59,19 @@ int parse_input_file(char *filename) {
     size_t snumber = 0;
     range = malloc(sizeof(Range) * 128);
     srange = 0;
+    range[srange].ranges = (size_t*) malloc(sizeof(size_t) * 128);
+    range[srange].sz_ranges = 0;
+    range[srange].position = 0;
+    range[srange].fieldname = (char*)malloc(sizeof(char) * 512);
+    range[srange].sz_fieldname = 0;
+
 
     row = 1;
-
     nearby_tickets = (size_t**)malloc(sizeof(size_t) * 1024);
     for (size_t i = 0; i < 1024; ++i) {
         nearby_tickets[i] = (size_t*)malloc(sizeof(size_t) * 20);
     }
     sz_nearby_tickets = 0;
-
     myticket = (size_t*)malloc(sizeof(size_t) * 32);
     sz_myticket = 0;
 
@@ -79,19 +86,32 @@ int parse_input_file(char *filename) {
                 snumber++;
                 number[snumber] = '\0';
             } else if (isSymbol(c, '-') && isDigit(lastChar)) {
-                range[srange].min = atoll(number);
+                range[srange].ranges[range[srange].sz_ranges++] = atoll(number);
                 number[0] = '\0';
                 snumber = 0;
             } else if (isSpace(c) && isDigit(lastChar)) {
-                range[srange].max = atoll(number);
+                range[srange].ranges[range[srange].sz_ranges++] = atoll(number);
                 number[0] = '\0';
                 snumber = 0;
-                srange++;
             } else if (isNewLine(c) && isDigit(lastChar)) {
-                range[srange].max = atoll(number);
+                range[srange].ranges[range[srange].sz_ranges++] = atoll(number);
                 number[0] = '\0';
                 snumber = 0;
                 srange++;
+                //
+                range[srange - 1].fieldname[range[srange - 1 ].sz_fieldname] = '\0';
+                range[srange].fieldname = (char*)malloc(sizeof(char) * 128);
+                range[srange].sz_fieldname = 0;
+                range[srange].ranges = (size_t*)malloc(sizeof(size_t) * 128);
+                range[srange].sz_ranges = 0;
+
+            } else if (isCharacter(c)
+                       &&
+                       !(c == 'o' && (isSpace(lastChar))) &&
+                       !(c == 'r' && lastChar == 'o'))
+                {
+                range[srange].fieldname[range[srange].sz_fieldname] = c;
+                range[srange].sz_fieldname++;
             }
         }
 
@@ -143,6 +163,15 @@ size_t solutionPartTwo() {
     for (size_t i = 0; i < sz_myticket; ++i) {
         fprintf(stdout, "%lu ", myticket[i]);
     }
+    putchar('\n');
+    for (size_t i = 0; i < srange; ++i) {
+        fprintf(stdout, "%s ", range[i].fieldname);
+        for (size_t j = 0; j < range[i].sz_ranges; ++j) {
+            fprintf(stdout, "%lu ", range[i].ranges[j]);
+        }
+        putchar('\n');
+    }
+
 
     return solution;
 }
@@ -153,7 +182,7 @@ size_t solutionPartOne() {
 
     for (size_t j = 0; j < (row - 1); ++j) {
         for (size_t i = 0; i < sz_nearby_tickets; ++i) {
-            fprintf(stdout, "%lu ", nearby_tickets[j][i]);
+            // fprintf(stdout, "%lu ", nearby_tickets[j][i]);
             for (size_t k = 0; k < srange; ++k) {
                 if (inRange(range[k], nearby_tickets[j][i])) {
                     break;
@@ -177,7 +206,7 @@ int main(int argc, char *argv[])
     (void) argc;
     (void) argv[0];
 
-    char *input_file = "sample-input2.txt";
+    char *input_file = "input.txt";
     parse_input_file(input_file);
     fprintf(stdout, "Solution for Part One: %lu\n", solutionPartOne());
     fprintf(stdout, "Solution for Part Two: %lu\n", solutionPartTwo());
