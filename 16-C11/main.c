@@ -9,7 +9,8 @@ typedef struct {
 
 Range *range;
 size_t srange;
-size_t *nearby_tickets;
+size_t **nearby_tickets;
+size_t row;
 size_t sz_nearby_tickets;
 
 int isDigit(char c) {
@@ -25,7 +26,7 @@ int isSpace(char c) {
 }
 
 int isNewLine(char c) {
-    return (c == '\n' || c == '\r') ? (1) : (0);
+    return (c == '\n') ? (1) : (0);
 }
 
 int isCharacter(char c) {
@@ -52,7 +53,12 @@ int parse_input_file(char *filename) {
     size_t snumber = 0;
     range = malloc(sizeof(Range) * 128);
     srange = 0;
-    nearby_tickets = malloc(sizeof(size_t) * 1024);
+    row = 1;
+    nearby_tickets = (size_t**)malloc(sizeof(size_t) * 1024);
+    for (size_t i = 0; i < 1024; ++i) {
+        nearby_tickets[i] = (size_t*)malloc(sizeof(size_t) * 20);
+    }
+
     sz_nearby_tickets = 0;
     while (c != EOF) {
         if (isNewLine(c) && isNewLine(lastChar))
@@ -86,12 +92,17 @@ int parse_input_file(char *filename) {
         }
 
         if (entrySection == 2) {
+            if (isDigit(c) && isNewLine(lastChar)) {
+                row++;
+                sz_nearby_tickets = 0;
+            }
+
             if (isDigit(c)) {
                 number[snumber++] = c;
                 number[snumber] = '\0';
             } else if ((isSymbol(c, ',') && isDigit(lastChar)) ||
                        (isNewLine(c) && isDigit(lastChar))) {
-                nearby_tickets[sz_nearby_tickets++] = atoll(number);
+                nearby_tickets[row - 2][sz_nearby_tickets++] = atoll(number);
                 number[0] = '\0';
                 snumber = 0;
             }
@@ -107,16 +118,23 @@ int parse_input_file(char *filename) {
 
 size_t solutionPartOne() {
     size_t solution = 0;
-    for (size_t j = 0; j < sz_nearby_tickets; ++j) {
-        int isTicketInRange = 0;
-        for (size_t i = 0; i < srange; ++i) {
-            if (inRange(range[i], nearby_tickets[j])) {
-                isTicketInRange++;
-                break;
+    size_t notinrange = 0;
+
+    for (size_t j = 0; j < (row - 1); ++j) {
+        for (size_t i = 0; i < sz_nearby_tickets; ++i) {
+            // fprintf(stdout, "%lu ", nearby_tickets[j][i]);
+            for (size_t k = 0; k < srange; ++k) {
+                if (inRange(range[k], nearby_tickets[j][i])) {
+                    break;
+                } else {
+                    notinrange++;
+                }
             }
-        }
-        if (!isTicketInRange) {
-            solution += nearby_tickets[j];
+
+            if (notinrange == srange)
+                solution += nearby_tickets[j][i];
+
+            notinrange = 0;
         }
     }
 
