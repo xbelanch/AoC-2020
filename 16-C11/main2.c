@@ -18,8 +18,14 @@ typedef struct {
     size_t len;
 } Rule;
 
+typedef struct {
+    size_t *numbers;
+    size_t len;
+} MyTicket;
+
 InputTextFile inputTextFile;
 Rule rule;
+MyTicket myTicket;
 
 int inRange(Range range, size_t number) {
     return number >= range.min && number <= range.max ? (1) : (0);
@@ -55,6 +61,22 @@ int parse_ranges_field(Field *field, char *input) {
     return(0);
 }
 
+int parse_ticket(MyTicket *myTicket, char *input) {
+    myTicket->numbers = (size_t*)malloc(sizeof(size_t) * 128);
+    myTicket->len = 0;
+    size_t len_input = strlen(input);
+    char *number = (char*)malloc(sizeof(char) * 32);
+    size_t len = 0;
+    for (size_t i = 0; i < len_input; ++i) {
+        if (isDigit(input[i])) number[len++] = input[i];
+        if (isSymbol(input[i], ',') || i == len_input - 1) {
+            myTicket->numbers[myTicket->len++] = atoll(number);
+            len = 0;
+        }
+    }
+    return (0);
+}
+
 int parse_input_file(char *input_filename) {
 
     FILE *fp = fopen(input_filename, "rb");
@@ -81,6 +103,7 @@ int parse_input_file(char *input_filename) {
                 break;
             case 1:
                 // TODO: Parse "my" ticket
+                parse_ticket(&myTicket, inputTextFile.lines[i]);
                 break;
             case 2:
                 // TODO: Parse nearby tickets
@@ -99,18 +122,18 @@ int main(int argc, char *argv[])
     (void) argc;
     (void) argv[0];
 
-    char *input_filename = "tsoding.txt";
+    char *input_filename = "input.txt";
     parse_input_file(input_filename);
 
     // print all the ranges
-    for (size_t i = 0; i < rule.len; ++i) {
-        fprintf(stdout, "%s: %lu-%lu %lu-%lu", rule.fields[i].name,
-                rule.fields[i].ranges[0].min,
-                rule.fields[i].ranges[0].max,
-                rule.fields[i].ranges[1].min,
-                rule.fields[i].ranges[1].max);
-        putchar('\n');
-    }
+    // for (size_t i = 0; i < rule.len; ++i) {
+    //     fprintf(stdout, "%s: %lu-%lu %lu-%lu", rule.fields[i].name,
+    //             rule.fields[i].ranges[0].min,
+    //             rule.fields[i].ranges[0].max,
+    //             rule.fields[i].ranges[1].min,
+    //             rule.fields[i].ranges[1].max);
+    //     putchar('\n');
+    // }
 
 
     return (0);
