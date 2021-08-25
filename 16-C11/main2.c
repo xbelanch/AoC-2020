@@ -33,9 +33,8 @@ Rule rule;
 Ticket myTicket;
 Nearby nearby;
 
-
 int inRange(Range range, size_t number) {
-    return number >= range.min && number <= range.max ? (1) : (0);
+    return (number >= range.min && number <= range.max) ? (1) : (0);
 }
 
 int parse_ranges_field(Field *field, char *input) {
@@ -80,8 +79,8 @@ int parse_Ticket(Ticket *myTicket, char *input) {
     for (size_t i = 0; i < len_input; ++i) {
         if (isDigit(input[i])) number[len++] = input[i];
         if (isSymbol(input[i], ',') || i == len_input - 1) {
+            number[len] = '\0';
             myTicket->numbers[myTicket->len++] = atoll(number);
-            number[len - 1] = '\0';
             len = 0;
         }
     }
@@ -95,31 +94,6 @@ int print_field_ranges(Rule rule, size_t i) {
             rule.fields[i].ranges[1].min,
             rule.fields[i].ranges[1].max);
     return(0);
-}
-
-int print_parsed_data(void) {
-    // Print all the field ranges
-    for (size_t i = 0; i < rule.len; ++i) {
-        print_field_ranges(rule, i);
-        putchar('\n');
-    }
-    putchar('\n');
-
-    // Print your ticket
-    for (size_t i = 0; i < myTicket.len; ++i) {
-        fprintf(stdout, "%lu ", myTicket.numbers[i]);
-    }
-    putchar('\n');
-    putchar('\n');
-
-    // Print nearby tickets
-    for (size_t i = 0; i < nearby.len; ++i) {
-        for (size_t j = 0; j < nearby.ticket[i].len; ++j) {
-            fprintf(stdout, "%lu ", nearby.ticket[i].numbers[j]);
-        }
-        putchar('\n');
-    }
-    return (0);
 }
 
 int parse_input_file(char *input_filename) {
@@ -161,9 +135,62 @@ int parse_input_file(char *input_filename) {
         }
     }
 
-
     return (0);
 }
+
+int print_parsed_data(void) {
+    // Print all the field ranges
+    for (size_t i = 0; i < rule.len; ++i) {
+        print_field_ranges(rule, i);
+        putchar('\n');
+    }
+    putchar('\n');
+
+    // Print your ticket
+    for (size_t i = 0; i < myTicket.len; ++i) {
+        fprintf(stdout, "%lu ", myTicket.numbers[i]);
+    }
+    putchar('\n');
+    putchar('\n');
+
+    // Print nearby tickets
+    for (size_t i = 0; i < nearby.len; ++i) {
+        for (size_t j = 0; j < nearby.ticket[i].len; ++j) {
+            fprintf(stdout, "%lu ", nearby.ticket[i].numbers[j]);
+        }
+        putchar('\n');
+    }
+    return (0);
+}
+
+size_t solutionPartOne() {
+    size_t solution = 0;
+    size_t notinrange = 0;
+
+    for (size_t i = 0; i < nearby.len; ++i) {
+        for (size_t j = 0; j < nearby.ticket[i].len; ++j) {
+            for (size_t k = 0; k < rule.len; ++k) {
+                if (inRange(rule.fields[k].ranges[0], nearby.ticket[i].numbers[j]) ||
+                    inRange(rule.fields[k].ranges[1], nearby.ticket[i].numbers[j])) {
+                        break;
+                    } else {
+                        notinrange++;
+                    }
+            }
+
+            if (notinrange == rule.len) {
+                // Numbers that not match with any range rule
+                // fprintf(stdout,"%lu ", nearby.ticket[i].numbers[j]);
+                solution += nearby.ticket[i].numbers[j];
+            }
+
+            notinrange = 0;
+        }
+    }
+
+    return(solution);
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -172,7 +199,8 @@ int main(int argc, char *argv[])
 
     char *input_filename = "input.txt";
     parse_input_file(input_filename);
-    print_parsed_data();
+    // print_parsed_data();
+    fprintf(stdout, "Solution for part One: %lu", solutionPartOne());
 
     return (0);
 }
