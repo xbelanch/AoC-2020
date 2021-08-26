@@ -21,6 +21,8 @@ typedef struct {
 typedef struct {
     size_t *numbers;
     size_t len;
+    size_t row;
+    int isInvalid;
 } Ticket;
 
 typedef struct {
@@ -113,6 +115,7 @@ int parse_input_file(char *input_filename) {
     nearby.ticket = (Ticket*)malloc(sizeof(Ticket) * 512);
     nearby.len = 0;
 
+    size_t row = 0;
     size_t section = 0;
     for (size_t i = 0; i < inputTextFile.size; ++i) {
         if (!strcmp("your ticket:", inputTextFile.lines[i]) || !strcmp("nearby tickets:", inputTextFile.lines[i])) {
@@ -127,7 +130,10 @@ int parse_input_file(char *input_filename) {
                 parse_Ticket(&myTicket, inputTextFile.lines[i]);
                 break;
             case 2:
-                parse_Ticket(&(nearby.ticket[nearby.len++]), inputTextFile.lines[i]);
+                nearby.ticket[nearby.len].row = row;
+                parse_Ticket(&(nearby.ticket[nearby.len]), inputTextFile.lines[i]);
+                nearby.len += 1;
+                row += 1;
                 break;
             default:
                 break;
@@ -180,17 +186,47 @@ size_t solutionPartOne() {
 
             if (notinrange == rule.len) {
                 // Numbers that not match with any range rule
-                // fprintf(stdout,"%lu ", nearby.ticket[i].numbers[j]);
                 solution += nearby.ticket[i].numbers[j];
+                nearby.ticket[i].isInvalid = 1;
             }
 
             notinrange = 0;
         }
     }
-
     return(solution);
 }
 
+size_t solutionPartTwo() {
+
+    size_t solution = 0;
+    // Remove invalid nearby tickets (rows)
+    for (size_t i = 0; i < nearby.len; ++i) {
+        if (nearby.ticket[i].isInvalid) {
+            for (size_t j = i; j < nearby.len; ++j) {
+                nearby.ticket[j] = nearby.ticket[j + 1];
+            }
+            nearby.len -= 1;
+            i--;
+        }
+    }
+
+    // Print valid nearby tickets
+    for (size_t i = 0; i < nearby.len; ++i) {
+        for (size_t j = 0; j < nearby.ticket[i].len; ++j) {
+            fprintf(stdout, "%lu ", nearby.ticket[i].numbers[j]);
+        }
+        putchar('\n');
+    }
+
+    return(solution);
+
+}
+
+/*
+ * Tsoding Solution:
+ * Part 1: 23925
+ * Part 2: 964373157673
+ */
 
 int main(int argc, char *argv[])
 {
@@ -200,7 +236,7 @@ int main(int argc, char *argv[])
     char *input_filename = "input.txt";
     parse_input_file(input_filename);
     // print_parsed_data();
-    fprintf(stdout, "Solution for part One: %lu", solutionPartOne());
-
+    fprintf(stdout, "Solution for part One: %lu\n", solutionPartOne());
+    fprintf(stdout, "Solution for part Two: %lu\n", solutionPartTwo());
     return (0);
 }
