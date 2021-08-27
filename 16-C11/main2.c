@@ -11,6 +11,8 @@ typedef struct {
 typedef struct {
     char* name;
     Range ranges[2];
+    int hasMatched;
+    size_t index;
 } Field;
 
 typedef struct {
@@ -49,7 +51,10 @@ int parse_ranges_field(Field *field, char *input) {
     size_t len = 0;
     for (size_t i = 0; i < input_len; ++i) {
         // putchar(input[i]);
-        if (isSymbol(input[i], ':')) memcpy(field->name, input, i);
+        if (isSymbol(input[i], ':')) {
+            memcpy(field->name, input, i);
+            field->name[i] = '\0';
+        }
         if (isDigit(input[i]) && isSpace(last)) minmatch = 1;
         if (isDigit(input[i]) && isSymbol(last, '-')) maxmatch = 1;
         if (isDigit(input[i]) && minmatch) number[len++] = input[i];
@@ -124,6 +129,7 @@ int parse_input_file(char *input_filename) {
             switch(section) {
             case 0:
                 parse_ranges_field(&(rule.fields)[rule.len], inputTextFile.lines[i]);
+                rule.fields[rule.len].index = i;
                 rule.len++;
                 break;
             case 1:
@@ -210,22 +216,53 @@ size_t solutionPartTwo() {
         }
     }
 
-    // Print valid nearby tickets
-    for (size_t i = 0; i < nearby.len; ++i) {
-        for (size_t j = 0; j < nearby.ticket[i].len; ++j) {
-            fprintf(stdout, "%lu ", nearby.ticket[i].numbers[j]);
+    // Traverse nearby tickets by column
+    size_t len_column = nearby.ticket[0].len;
+    // fprintf(stdout, "column len: %lu\n", len_column);
+    // fprintf(stdout, "rule len: %lu\n", rule.len);
+    // fprintf(stdout, "nearby len: %lu\n", nearby.len);
+
+    size_t inrange = 0;
+    for (size_t column = 0; column < len_column; ++column) {
+        for (size_t k = 0; k < rule.len; ++k) {
+            for (size_t i = 0; i < nearby.len; ++i) {
+                // fprintf(stdout, "%lu ", nearby.ticket[i].numbers[column]);
+                if (inRange(rule.fields[k].ranges[0], nearby.ticket[i].numbers[column]) ||
+                    inRange(rule.fields[k].ranges[1], nearby.ticket[i].numbers[column])) {
+                    inrange++;
+                } else {
+                }
+            }
+
+            if (inrange == nearby.len && !rule.fields[k].hasMatched) {
+                // Numbers that match with all range ticket rule
+                // fprintf(stdout, "%s", rule.fields[k].name);
+                rule.fields[k].index = column;
+                rule.fields[k].hasMatched = 1;
+                break;
+            }
+
+            inrange = 0;
         }
-        putchar('\n');
     }
 
-    return(solution);
+    solution += myTicket.numbers[rule.fields[0].index];
+    for (size_t i = 1; i < 6; ++i) {
+        // fprintf(stdout, "%s at %lu: %lu ... %lu", rule.fields[i].name, rule.fields[i].index, myTicket.numbers[rule.fields[i].index], solution);
+        // putchar('\n');
+        solution *= myTicket.numbers[rule.fields[i].index];
+    }
+
+    return (solution);
 
 }
 
 /*
  * Tsoding Solution:
  * Part 1: 23925
- * Part 2: 964373157673
+ * Part 2:
+964373157673
+1351393080613
  */
 
 int main(int argc, char *argv[])
@@ -233,7 +270,7 @@ int main(int argc, char *argv[])
     (void) argc;
     (void) argv[0];
 
-    char *input_filename = "input.txt";
+    char *input_filename = "tsoding.txt";
     parse_input_file(input_filename);
     // print_parsed_data();
     fprintf(stdout, "Solution for part One: %lu\n", solutionPartOne());
