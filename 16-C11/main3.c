@@ -10,7 +10,7 @@ char *lines[1024];
 size_t sz_lines;
 size_t ranges[32][4];
 size_t sz_ranges;
-size_t nearbyTickets[512][512];
+size_t nearbyTickets[1024][1024];
 size_t sz_nearbyTickets;
 size_t myTicket[32];
 size_t sz_myTicket;
@@ -141,6 +141,9 @@ int parse_input_file(char *filename) {
     return(0);
 }
 
+
+
+
 size_t solutionPartOne() {
     size_t solution = 0;
     size_t match = 0;
@@ -158,14 +161,37 @@ size_t solutionPartOne() {
             }
 
             if (match == sz_ranges) {
+                // fprintf(stdout, "!%lu! at %lu\n", value, i);
                 solution += value;
+
+                // Discard all invalid nearby tickets
+                for (size_t r = i; r < sz_nearbyTickets; ++r) {
+                    for (size_t s = 0; nearbyTickets[r][s] < (size_t)-1; ++s) {
+                        nearbyTickets[r][s] = nearbyTickets[r + 1][s];
+                    }
+                }
+                sz_nearbyTickets--;
+                // fix bug when invalid values belongs to first nearby ticket of the list
+                if (i != 0)
+                    i--;
             }
-            match = 0;
+
+            if (match > 0) {
+                match = 0;
+            }
+
         }
     }
 
     return(solution);
 }
+
+size_t solutionPartTwo() {
+    size_t solution = 0;
+
+    return(solution);
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -173,17 +199,24 @@ int main(int argc, char *argv[])
     (void) argv[0];
 
     // initialize nearby tickets
-    for (size_t i = 0; i < 512; ++i) {
-        for (size_t j = 0; j < 512; ++j) {
-            nearbyTickets[i][j] = -1;
+    for (size_t i = 0; i < 1024; ++i) {
+        for (size_t j = 0; j < 1024; ++j) {
+            nearbyTickets[i][j] = (size_t)-1;
         }
     }
 
     char *filename = "input.txt";
     parse_input_file(filename);
     get_data();
-    // log_data();
+
+    /*
+     * Tsoding Solution:
+     * Part 1: 23925
+     * Part 2: 964373157673
+     */
+
     fprintf(stdout, "Solution for part One: %lu\n", solutionPartOne());
+    // log_data();
 
     return(0);
 }
