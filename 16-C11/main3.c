@@ -15,7 +15,6 @@ size_t sz_nearbyTickets;
 size_t myTicket[32];
 size_t sz_myTicket;
 
-
 bool in_range(size_t min, size_t max, size_t val) {
     return val - min <= max - min ? true : false;
 }
@@ -118,7 +117,6 @@ int get_data() {
     return(0);
 }
 
-
 int parse_input_file(char *filename) {
     FILE *fp;
     if ((fp = fopen(filename, "rb")) == NULL) {
@@ -143,6 +141,31 @@ int parse_input_file(char *filename) {
     return(0);
 }
 
+size_t solutionPartOne() {
+    size_t solution = 0;
+    size_t match = 0;
+    size_t value = 0;
+    for (size_t i = 0; i < sz_nearbyTickets; ++i) {
+        for (size_t j = 0; nearbyTickets[i][j] < (size_t)-1; ++j) {
+            value = nearbyTickets[i][j];
+            for (size_t k = 0; k < sz_ranges; ++k) {
+                if (in_range(ranges[k][0], ranges[k][1], value) ||
+                    in_range(ranges[k][2], ranges[k][3], value)) {
+                    break;
+                } else {
+                    match++;
+                }
+            }
+
+            if (match == sz_ranges) {
+                solution += value;
+            }
+            match = 0;
+        }
+    }
+
+    return(solution);
+}
 
 int main(int argc, char *argv[])
 {
@@ -156,10 +179,11 @@ int main(int argc, char *argv[])
         }
     }
 
-    char *filename = "sample-input.txt";
+    char *filename = "input.txt";
     parse_input_file(filename);
     get_data();
-    log_data();
+    // log_data();
+    fprintf(stdout, "Solution for part One: %lu\n", solutionPartOne());
 
-    return 0;
+    return(0);
 }
