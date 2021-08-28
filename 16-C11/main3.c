@@ -8,7 +8,9 @@
 
 char *lines[1024];
 size_t sz_lines;
-size_t ranges[32][4];
+char *fields[64];
+size_t sz_fields;
+size_t ranges[64][4];
 size_t sz_ranges;
 size_t nearbyTickets[1024][1024];
 size_t sz_nearbyTickets;
@@ -20,20 +22,20 @@ bool in_range(size_t min, size_t max, size_t val) {
 }
 
 int log_data() {
-    // Ranges
-    for (size_t i = 0; i < sz_ranges; ++i) {
+    // Fields with its ranges
+    for (size_t i = 0; i < sz_fields ; ++i) {
+        fprintf(stdout, "%s ", fields[i]);
         for (size_t j = 0; j < 4; ++j) {
             fprintf(stdout, "%lu ", ranges[i][j]);
         }
         putchar('\n');
     }
-    putchar('\n');
 
     // Your Ticket
+    fprintf(stdout, "my: ");
     for (size_t i = 0; i < sz_myTicket; ++i) {
         fprintf(stdout, "%lu,", myTicket[i]);
     }
-    putchar('\n');
     putchar('\n');
 
     // Nearby Tickets
@@ -63,8 +65,20 @@ int get_data() {
         if (strcmp("nearby tickets:\n", lines[i]) == 0)
             ntickets = true;
 
-        // get and save ranges
+        // get and save fields and ranges
         if (strchr(lines[i], '-') != NULL) {
+
+            // get fields
+            j = 0;
+            fields[i] = (char*) malloc(sizeof(char) * 128);
+            for (char *p = lines[i]; p != strchr(lines[i], ':'); ++p) {
+                fields[i][j++] = *p;
+            }
+            fields[i][j] = '\0';
+            sz_fields++;
+
+            // get ranges for every field
+            j = 0;
             for (char *p = strchr(lines[i], ':'); *p != '\0'; ++p) {
                 if (isDigit(*p)) {
                     num[j++] = *p;
@@ -186,8 +200,12 @@ size_t solutionPartOne() {
     return(solution);
 }
 
+bool inRange(size_t field, size_t value) {
+    return (in_range(ranges[field][0], ranges[field][1], value) ||
+            in_range(ranges[field][2], ranges[field][3], value));
+}
+
 size_t solutionPartTwo() {
-    size_t solution = 1;
 
     size_t transpose[1024][1024];
     for (size_t i = 0; i < 1024; ++i) {
@@ -261,35 +279,26 @@ size_t solutionPartTwo() {
     // traverse raw result and sort the rows depending of number of matches
     // the goal is discard duplicated matches like the simple example of
     // part two
+    // Save the index!
+    size_t index[max_rows];
     size_t sum = 0;
     for (size_t i = 0; i < max_rows; ++i) {
-        // fprintf(stdout, "%lu: ", i);
+        fprintf(stdout, "%lu: ", i);
         for (size_t j = 0; j < max_rows; ++j) {
             if (result[i][j])
                 sum++;
-            // fprintf(stdout, "%lu,", result[i][j]);
+            fprintf(stdout, "%lu,", result[i][j]);
         }
-        // fprintf(stdout, ": %lu", sum);
+        index[sum - 1] = i;
+        fprintf(stdout, ": (%lu matches)", sum);
         for (size_t k = 0; k < max_rows; ++k) {
             matrix2[sum - 1][k] = result[i][k];
         }
-
-        // putchar('\n');
+        putchar('\n');
         sum = 0;
     }
 
     // traverse  matrix2 and discard duplicated matches
-    for (size_t i = 0; i < max_rows; ++i) {
-        fprintf(stdout, "%lu: ", i);
-        for (size_t j = 0; j < max_rows; ++j) {
-            fprintf(stdout, "%lu,", matrix2[i][j]);
-        }
-        putchar('\n');
-    }
-
-    putchar('\n');
-    putchar('\n');
-
     size_t found2[max_rows];
     for (size_t i = 0; i < max_rows; ++i) found2[i] = 0;
 
@@ -302,21 +311,29 @@ size_t solutionPartTwo() {
             }
         }
     }
+    putchar('\n');
 
-    size_t whatColumn;
+    size_t whatColumn[max_rows];
+    size_t fuck[6];
+    size_t lenfuck = 0;
+    size_t solution = 1;
     for (size_t i = 0; i < max_rows; ++i) {
         fprintf(stdout, "%lu: ", i);
         for (size_t j = 0; j < max_rows; ++j) {
             fprintf(stdout, "%lu,", matrix2[i][j]);
             if (matrix2[i][j])
-                whatColumn = j;
+                whatColumn[i] = j;
         }
-        fprintf(stdout, " (%lu)", whatColumn);
-        if (i < 6) {
-            solution *= myTicket[whatColumn];
-        }
-
+        fprintf(stdout, " (%lu) -> (%lu)", whatColumn[i], index[i]);
+        if ( whatColumn[i] < 6)
+            fuck[lenfuck++] = index[i];
         putchar('\n');
+    }
+
+    // Okay guys... this is shit...
+    for (size_t i = 0; i < lenfuck; ++i) {
+        fprintf(stdout, "%lu ", fuck[i]);
+        solution *= myTicket[fuck[i]];
     }
 
     return(solution);
@@ -336,7 +353,8 @@ int main(int argc, char *argv[])
     }
 
     // char *filename = "sample-input2.txt";
-    char *filename = "tsoding.txt";
+    // char *filename = "tsoding.txt";
+    char *filename = "input.txt";
     parse_input_file(filename);
     get_data();
 
@@ -344,7 +362,6 @@ int main(int argc, char *argv[])
      * Tsoding Solution:
      * Part 1: 23925
      * Part 2: 964373157673
-               899053221949
      */
 
     fprintf(stdout, "Solution for part One: %lu\n", solutionPartOne());
