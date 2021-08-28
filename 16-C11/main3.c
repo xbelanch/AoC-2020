@@ -187,7 +187,137 @@ size_t solutionPartOne() {
 }
 
 size_t solutionPartTwo() {
-    size_t solution = 0;
+    size_t solution = 1;
+
+    size_t transpose[1024][1024];
+    for (size_t i = 0; i < 1024; ++i) {
+        for (size_t j = 0; j < 1024; ++j) {
+            transpose[i][j] = (size_t)-1;
+        }
+    }
+
+    // fucking matrix invers transpose
+    for (size_t i = 0; i < sz_nearbyTickets; ++i) {
+        for (size_t j = 0; nearbyTickets[i][j] < (size_t)-1; ++j) {
+            transpose[j][i] = nearbyTickets[i][j];
+        }
+    }
+
+    size_t max_columns = 0;
+    for (size_t i = 0; transpose[0][i] < (size_t)-1; ++i) max_columns++;
+
+    size_t max_rows = 0;
+    for (size_t i = 0; transpose[i][0] < (size_t)-1; ++i) max_rows++;
+
+    size_t match[max_rows];
+    for (size_t i = 0; i < max_rows; ++i) match[i] = 0;
+
+    size_t found[max_rows];
+    for (size_t i = 0; i < max_rows; ++i) found[i] = 0;
+
+    size_t result[max_rows][max_rows];
+    for (size_t i = 0; i < max_rows; ++i)
+        for (size_t j = 0; j < max_rows; ++j)
+            result[i][j] = 0;
+
+
+    size_t field;
+    for (size_t i = 0; i < max_rows; ++i) {
+        for (size_t j = 0; j < max_columns; ++j) {
+            size_t value = transpose[i][j];
+            for (field = 0; field < sz_ranges; ++field) {
+                if (in_range(ranges[field][0], ranges[field][1], value) ||
+                    in_range(ranges[field][2], ranges[field][3], value)) {
+                    match[field]++;
+                    // fprintf(stdout, "match: %lu at field: %lu\n", value, field);
+                }
+            }
+        }
+
+        for (size_t l = 0; l < sz_ranges; ++l) {
+            // fprintf(stdout, "match[%lu] = %lu ", l, match[l]);
+            if (match[l] == max_columns && !found[l]) {
+                // putchar('<');
+                result[i][l]++;
+                found[l] = 0;
+                // break;
+            }
+            // putchar('\n');
+        }
+
+        // reset
+        for (size_t i = 0; i < max_rows; ++i) match[i] = 0;
+    }
+
+    // now we reorder the matrix depending on result or copy on a new matrix
+    size_t matrix2[max_rows][max_rows];
+
+    for (size_t i = 0; i < max_rows; ++i) {
+        for (size_t j = 0; j < max_rows; ++j) {
+            matrix2[i][j] = 0;
+        }
+    }
+
+    // traverse raw result and sort the rows depending of number of matches
+    // the goal is discard duplicated matches like the simple example of
+    // part two
+    size_t sum = 0;
+    for (size_t i = 0; i < max_rows; ++i) {
+        // fprintf(stdout, "%lu: ", i);
+        for (size_t j = 0; j < max_rows; ++j) {
+            if (result[i][j])
+                sum++;
+            // fprintf(stdout, "%lu,", result[i][j]);
+        }
+        // fprintf(stdout, ": %lu", sum);
+        for (size_t k = 0; k < max_rows; ++k) {
+            matrix2[sum - 1][k] = result[i][k];
+        }
+
+        // putchar('\n');
+        sum = 0;
+    }
+
+    // traverse  matrix2 and discard duplicated matches
+    for (size_t i = 0; i < max_rows; ++i) {
+        fprintf(stdout, "%lu: ", i);
+        for (size_t j = 0; j < max_rows; ++j) {
+            fprintf(stdout, "%lu,", matrix2[i][j]);
+        }
+        putchar('\n');
+    }
+
+    putchar('\n');
+    putchar('\n');
+
+    size_t found2[max_rows];
+    for (size_t i = 0; i < max_rows; ++i) found2[i] = 0;
+
+    for (size_t i = 0; i < max_rows; ++i) {
+        for (size_t j = 0; j < max_rows; ++j) {
+            if (matrix2[i][j] && !found2[j]) {
+                found2[j] = 1;
+            } else {
+                matrix2[i][j] = 0;
+            }
+        }
+    }
+
+    size_t whatColumn;
+    for (size_t i = 0; i < max_rows; ++i) {
+        fprintf(stdout, "%lu: ", i);
+        for (size_t j = 0; j < max_rows; ++j) {
+            fprintf(stdout, "%lu,", matrix2[i][j]);
+            if (matrix2[i][j])
+                whatColumn = j;
+        }
+        fprintf(stdout, " (%lu)", whatColumn);
+        if (i < 6) {
+            solution *= myTicket[whatColumn];
+        }
+
+        putchar('\n');
+    }
 
     return(solution);
 }
@@ -205,7 +335,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    char *filename = "input.txt";
+    // char *filename = "sample-input2.txt";
+    char *filename = "tsoding.txt";
     parse_input_file(filename);
     get_data();
 
@@ -213,10 +344,12 @@ int main(int argc, char *argv[])
      * Tsoding Solution:
      * Part 1: 23925
      * Part 2: 964373157673
+               899053221949
      */
 
     fprintf(stdout, "Solution for part One: %lu\n", solutionPartOne());
     // log_data();
+    fprintf(stdout, "Solution for part Two: %lu\n", solutionPartTwo());
 
     return(0);
 }
