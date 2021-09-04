@@ -155,9 +155,6 @@ int parse_input_file(char *filename) {
     return(0);
 }
 
-
-
-
 size_t solutionPartOne() {
     size_t solution = 0;
     size_t match = 0;
@@ -283,11 +280,16 @@ size_t solutionPartTwo() {
     size_t index[max_rows];
     size_t sum = 0;
     for (size_t i = 0; i < max_rows; ++i) {
-        fprintf(stdout, "%lu: ", i);
+        fprintf(stdout, "%lu:\t", i);
         for (size_t j = 0; j < max_rows; ++j) {
             if (result[i][j])
                 sum++;
-            fprintf(stdout, "%lu,", result[i][j]);
+            if (result[i][j] > 0) {
+                // fprintf(stdout, "*", result[i][j]);
+                fprintf(stdout, "*");
+            } else {
+                fprintf(stdout, "-");
+            }
         }
         index[sum - 1] = i;
         fprintf(stdout, ": (%lu matches)", sum);
@@ -297,6 +299,23 @@ size_t solutionPartTwo() {
         putchar('\n');
         sum = 0;
     }
+    putchar('\n');
+
+    // okay guys
+    // we sorted result's rows from one to all matches to matrix2 before
+    // let's try a simple visualization:
+
+    for (size_t i = 0; i < max_rows; ++i) {
+        fprintf(stdout, "%lu:\t", i);
+        for (size_t j = 0; j < max_rows; ++j) {
+            fprintf(stdout, "%c", matrix2[i][j] == 1 ? '*' : '-');
+        }
+        fprintf(stdout, ": (original row: %lu)", index[i]);
+        putchar('\n');
+    }
+
+    putchar('\n');
+
 
     // traverse  matrix2 and discard duplicated matches
     size_t found2[max_rows];
@@ -311,30 +330,33 @@ size_t solutionPartTwo() {
             }
         }
     }
-    putchar('\n');
 
     size_t whatColumn[max_rows];
     size_t fuck[6];
     size_t lenfuck = 0;
     size_t solution = 1;
     for (size_t i = 0; i < max_rows; ++i) {
-        fprintf(stdout, "%lu: ", i);
+        fprintf(stdout, "%lu:\t", i);
         for (size_t j = 0; j < max_rows; ++j) {
-            fprintf(stdout, "%lu,", matrix2[i][j]);
+            fprintf(stdout, "%c", matrix2[i][j] == 1 ? '*' : '-');
             if (matrix2[i][j])
                 whatColumn[i] = j;
         }
-        fprintf(stdout, " (%lu) -> (%lu)", whatColumn[i], index[i]);
+        fprintf(stdout, " (index fields %lu) -> (original row %lu)", whatColumn[i], index[i]);
         if ( whatColumn[i] < 6)
             fuck[lenfuck++] = index[i];
         putchar('\n');
     }
+
+    putchar('\n');
 
     // Okay guys... this is shit...
     for (size_t i = 0; i < lenfuck; ++i) {
         fprintf(stdout, "%lu ", fuck[i]);
         solution *= myTicket[fuck[i]];
     }
+
+    putchar('\n');
 
     return(solution);
 }
