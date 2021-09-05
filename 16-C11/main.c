@@ -1,234 +1,386 @@
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
+#include "helper.h"
 
-typedef struct {
-    char *fieldname;
-    size_t sz_fieldname;
-    size_t position;
-    size_t *ranges;
-    size_t sz_ranges;
-    int match;
-} Range;
+char *lines[1024];
+size_t sz_lines;
+char *fields[64];
+size_t sz_fields;
+size_t ranges[64][4];
+size_t sz_ranges;
+size_t nearbyTickets[1024][1024];
+size_t sz_nearbyTickets;
+size_t myTicket[32];
+size_t sz_myTicket;
 
-Range *range;
-size_t srange;
-size_t **nearby_tickets;
-size_t row;
-size_t sz_nearby_tickets;
-size_t *myticket;
-size_t sz_myticket;
-
-int isDigit(char c) {
-    return (c >= '0' && c <= '9') ? (1) : (0);
+bool in_range(size_t min, size_t max, size_t val) {
+    return val - min <= max - min ? true : false;
 }
 
-int isSymbol(char c, char symbol) {
-    return (c == symbol) ? (1) : (0);
-}
-
-int isSpace(char c) {
-    return (c == 32) ? (1) : (0);
-}
-
-int isNewLine(char c) {
-    return (c == '\n') ? (1) : (0);
-}
-
-int isCharacter(char c) {
-    return (c >= 'a' && c <= 'z') ? (1) : (0);
-}
-
-int inRange(Range range, size_t num) {
-    return ((num >= range.ranges[0] && num <= range.ranges[1]) ||
-            (num >= range.ranges[2] && num <= range.ranges[3])) ? (1) : (0);
-}
-
-int parse_input_file(char *filename) {
-    fprintf(stdout, "Input file: %s\n", filename);
-
-    FILE *fp = fopen(filename, "rb");
-    if (fp == NULL) {
-        fprintf(stdout, "ERROR: Input file %s not found!\n", filename);
-        return (1);
+int log_data() {
+    // Fields with its ranges
+    for (size_t i = 0; i < sz_fields ; ++i) {
+        fprintf(stdout, "%s ", fields[i]);
+        for (size_t j = 0; j < 4; ++j) {
+            fprintf(stdout, "%lu ", ranges[i][j]);
+        }
+        putchar('\n');
     }
 
-    int c = getc(fp);
-    int lastChar = 0;
-    size_t entrySection = 0;
-    char *number = malloc(sizeof(char) * 32);
-    size_t snumber = 0;
-    range = malloc(sizeof(Range) * 128);
-    srange = 0;
-    range[srange].ranges = (size_t*) malloc(sizeof(size_t) * 128);
-    range[srange].sz_ranges = 0;
-    range[srange].position = 0;
-    range[srange].fieldname = (char*)malloc(sizeof(char) * 512);
-    range[srange].sz_fieldname = 0;
-    range[srange].match = 0;
-
-
-    row = 1;
-    nearby_tickets = (size_t**)malloc(sizeof(size_t) * 1024);
-    for (size_t i = 0; i < 1024; ++i) {
-        nearby_tickets[i] = (size_t*)malloc(sizeof(size_t) * 20);
+    // Your Ticket
+    fprintf(stdout, "my: ");
+    for (size_t i = 0; i < sz_myTicket; ++i) {
+        fprintf(stdout, "%lu,", myTicket[i]);
     }
-    sz_nearby_tickets = 0;
-    myticket = (size_t*)malloc(sizeof(size_t) * 32);
-    sz_myticket = 0;
+    putchar('\n');
 
-    while (c != EOF) {
-        if (isNewLine(c) && isNewLine(lastChar))
-            entrySection++;
+    // Nearby Tickets
+    for (size_t i = 0; i < sz_nearbyTickets; ++i) {
+        for (size_t j = 0; nearbyTickets[i][j] < (size_t)-1; ++j) {
+            fprintf(stdout, "%lu,", nearbyTickets[i][j]);
+        }
+        putchar('\n');
+    }
 
-        // Get only the range values from input file
-        if (entrySection == 0) {
-            if (isDigit(c)) {
-                number[snumber] = c;
-                snumber++;
-                number[snumber] = '\0';
-            } else if (isSymbol(c, '-') && isDigit(lastChar)) {
-                range[srange].ranges[range[srange].sz_ranges++] = atoll(number);
-                number[0] = '\0';
-                snumber = 0;
-            } else if (isSpace(c) && isDigit(lastChar)) {
-                range[srange].ranges[range[srange].sz_ranges++] = atoll(number);
-                number[0] = '\0';
-                snumber = 0;
-            } else if (isNewLine(c) && isDigit(lastChar)) {
-                range[srange].ranges[range[srange].sz_ranges++] = atoll(number);
-                number[0] = '\0';
-                snumber = 0;
-                range[srange].position = srange;
-                srange++;
+    return(0);
+}
 
-                range[srange - 1].fieldname[range[srange - 1 ].sz_fieldname] = '\0';
-                range[srange].fieldname = (char*)malloc(sizeof(char) * 128);
-                range[srange].sz_fieldname = 0;
-                range[srange].ranges = (size_t*)malloc(sizeof(size_t) * 128);
-                range[srange].sz_ranges = 0;
-                range[srange].match = 0;
+int get_data() {
+    char *num = (char*)(malloc(sizeof(char) * 8));
+    char last;
+    size_t j = 0;
+    size_t k = 0;
+    size_t column = 0;
+    bool yticket = false;
+    bool ntickets = false;
 
-            } else if ((isCharacter(c) || (isSpace(c))) &&
-                       !(c == 'o' && (isSpace(lastChar))) &&
-                       !(c == 'r' && lastChar == 'o'))
-                {
-                range[srange].fieldname[range[srange].sz_fieldname] = c;
-                range[srange].sz_fieldname++;
+    for (size_t i = 0; i < sz_lines; ++i) {
+        if (strcmp("your ticket:\n", lines[i]) == 0)
+            yticket = true;
+
+        if (strcmp("nearby tickets:\n", lines[i]) == 0)
+            ntickets = true;
+
+        // get and save fields and ranges
+        if (strchr(lines[i], '-') != NULL) {
+
+            // get fields
+            j = 0;
+            fields[i] = (char*) malloc(sizeof(char) * 128);
+            for (char *p = lines[i]; p != strchr(lines[i], ':'); ++p) {
+                fields[i][j++] = *p;
+            }
+            fields[i][j] = '\0';
+            sz_fields++;
+
+            // get ranges for every field
+            j = 0;
+            for (char *p = strchr(lines[i], ':'); *p != '\0'; ++p) {
+                if (isDigit(*p)) {
+                    num[j++] = *p;
+                } else if ((*p == '-') ||
+                           (*p == ' ' && isDigit(last))) {
+                    num[j] = '\0';
+                    ranges[sz_ranges][k++] = atoll(num);
+                    j = 0;
+                } else if (*p == '\n' && isDigit(last)) {
+                    num[j] = '\0';
+                    ranges[sz_ranges][k++] = atoll(num);
+                    j = 0;
+                    k = 0;
+                    sz_ranges++;
+                }
+                last = *p;
             }
         }
-
-        if (entrySection == 1) {
-            // ... do something myticket
-            if (isDigit(c)) {
-                number[snumber++] = c;
-                number[snumber] = '\0';
-            } else if ((isSymbol(c, ',')) && (isDigit(lastChar))) {
-                myticket[sz_myticket] = atoll(number);
-                number[0] = '\0';
-                snumber = 0;
-                sz_myticket++;
-            } else if (isNewLine(c) && isDigit(lastChar)) {
-                myticket[sz_myticket] = atoll(number);
-                number[0] = '\0';
-                snumber = 0;
-                sz_myticket++;
+        if (yticket && isDigit(lines[i][0])) {
+            for (char *p = lines[i]; *p != '\0'; ++p) {
+                if (isDigit(*p)) {
+                    num[j++] = *p;
+                } else if (*p == ',' || *p == '\n') {
+                    num[j] = '\0';
+                    myTicket[sz_myTicket++] = atoll(num);
+                    j = 0;
+                }
             }
+            yticket = false;
         }
 
-        if (entrySection == 2) {
-            if (isDigit(c) && isNewLine(lastChar)) {
-                row++;
-                sz_nearby_tickets = 0;
-            }
-
-            if (isDigit(c)) {
-                number[snumber++] = c;
-                number[snumber] = '\0';
-            } else if ((isSymbol(c, ',') && isDigit(lastChar)) ||
-                       (isNewLine(c) && isDigit(lastChar))) {
-                nearby_tickets[row - 2][sz_nearby_tickets++] = atoll(number);
-                number[0] = '\0';
-                snumber = 0;
-            }
-        }
-
-        lastChar = c;
-        c = getc(fp);
-    }
-
-    fclose(fp);
-    return (0);
-}
-
-size_t solutionPartTwo() {
-    size_t solution = 0;
-    size_t match[srange];
-    // reset match
-    for (size_t k = 0; k < srange; ++k) {
-        match[k] = 0;
-    }
-
-    size_t i, j, column;
-    for (column = 0; column < sz_nearby_tickets; ++column) {
-        for (j = 0; j < (row - 1); ++j) {
-            for (i = 0; i < srange; ++i) {
-                if (inRange(range[i], nearby_tickets[j][column])) {
-                    // fprintf(stdout, "ticket %lu match with %s\n", nearby_tickets[j][column], range[i].fieldname);
-                    match[i]++;
+        if (ntickets && isDigit(lines[i][0])) {
+            for (char *p = lines[i]; *p != '\0'; ++p) {
+                if (isDigit(*p)) {
+                    num[j++] = *p;
+                } else if (*p == ',') {
+                    num[j] = '\0';
+                    nearbyTickets[sz_nearbyTickets][column++] = atoll(num);
+                    j = 0;
+                } else if (*p == '\n') {
+                    num[j] = '\0';
+                    nearbyTickets[sz_nearbyTickets++][column] = atoll(num);
+                    j = 0;
+                    column = 0;
                 }
             }
         }
-        // printf("----\n");
-        for (size_t k = 0; k < srange; ++k) {
-            // fprintf(stdout, "%s has %lu hits\n", range[k].fieldname, match[k]);
-            if (match[k] == (row - 1) && !range[k].match) {
-                fprintf(stdout, "%s\n", range[k].fieldname);
-                range[k].match = 1;
-            }
-        }
-        // reset match
-        for (size_t k = 0; k < srange; ++k) {
-            match[k] = 0;
-        }
     }
 
-    return solution;
+    return(0);
+}
+
+int parse_input_file(char *filename) {
+    FILE *fp;
+    if ((fp = fopen(filename, "rb")) == NULL) {
+        fprintf(stdout, "ERROR: Input file %s not found!\n", filename);
+        return(1);
+    }
+    int c;
+    int i = 0;
+    sz_lines = 0;
+    lines[sz_lines] = (char*)malloc(sizeof(char) * 1024);
+    while ((c = getc(fp)) != EOF) {
+        if (c == '\n') {
+            lines[sz_lines][i] = '\n';
+            i = 0;
+            sz_lines++;
+            lines[sz_lines] = (char*)malloc(sizeof(char) * 1024);
+        } else {
+            lines[sz_lines][i++] = c;
+        }
+    }
+    fclose(fp);
+    return(0);
 }
 
 size_t solutionPartOne() {
     size_t solution = 0;
-    size_t notinrange = 0;
-
-    for (size_t j = 0; j < (row - 1); ++j) {
-        for (size_t i = 0; i < sz_nearby_tickets; ++i) {
-            // fprintf(stdout, "%lu ", nearby_tickets[j][i]);
-            for (size_t k = 0; k < srange; ++k) {
-                if (inRange(range[k], nearby_tickets[j][i])) {
+    size_t match = 0;
+    size_t value = 0;
+    for (size_t i = 0; i < sz_nearbyTickets; ++i) {
+        for (size_t j = 0; nearbyTickets[i][j] < (size_t)-1; ++j) {
+            value = nearbyTickets[i][j];
+            for (size_t k = 0; k < sz_ranges; ++k) {
+                if (in_range(ranges[k][0], ranges[k][1], value) ||
+                    in_range(ranges[k][2], ranges[k][3], value)) {
                     break;
                 } else {
-                    notinrange++;
+                    match++;
                 }
             }
 
-            if (notinrange == srange)
-                solution += nearby_tickets[j][i];
+            if (match == sz_ranges) {
+                // fprintf(stdout, "!%lu! at %lu\n", value, i);
+                solution += value;
 
-            notinrange = 0;
+                // Discard all invalid nearby tickets
+                for (size_t r = i; r < sz_nearbyTickets; ++r) {
+                    for (size_t s = 0; nearbyTickets[r][s] < (size_t)-1; ++s) {
+                        nearbyTickets[r][s] = nearbyTickets[r + 1][s];
+                    }
+                }
+                sz_nearbyTickets--;
+                // fix bug when invalid values belongs to first nearby ticket of the list
+                if (i != 0)
+                    i--;
+            }
+
+            if (match > 0) {
+                match = 0;
+            }
+
         }
     }
 
     return(solution);
 }
 
+bool inRange(size_t field, size_t value) {
+    return (in_range(ranges[field][0], ranges[field][1], value) ||
+            in_range(ranges[field][2], ranges[field][3], value));
+}
+
+size_t solutionPartTwo() {
+
+    size_t transpose[1024][1024];
+    for (size_t i = 0; i < 1024; ++i) {
+        for (size_t j = 0; j < 1024; ++j) {
+            transpose[i][j] = (size_t)-1;
+        }
+    }
+
+    // fucking matrix invers transpose
+    for (size_t i = 0; i < sz_nearbyTickets; ++i) {
+        for (size_t j = 0; nearbyTickets[i][j] < (size_t)-1; ++j) {
+            transpose[j][i] = nearbyTickets[i][j];
+        }
+    }
+
+    size_t max_columns = 0;
+    for (size_t i = 0; transpose[0][i] < (size_t)-1; ++i) max_columns++;
+
+    size_t max_rows = 0;
+    for (size_t i = 0; transpose[i][0] < (size_t)-1; ++i) max_rows++;
+
+    size_t match[max_rows];
+    for (size_t i = 0; i < max_rows; ++i) match[i] = 0;
+
+    size_t found[max_rows];
+    for (size_t i = 0; i < max_rows; ++i) found[i] = 0;
+
+    size_t result[max_rows][max_rows];
+    for (size_t i = 0; i < max_rows; ++i)
+        for (size_t j = 0; j < max_rows; ++j)
+            result[i][j] = 0;
+
+
+    size_t field;
+    for (size_t i = 0; i < max_rows; ++i) {
+        for (size_t j = 0; j < max_columns; ++j) {
+            size_t value = transpose[i][j];
+            for (field = 0; field < sz_ranges; ++field) {
+                if (in_range(ranges[field][0], ranges[field][1], value) ||
+                    in_range(ranges[field][2], ranges[field][3], value)) {
+                    match[field]++;
+                    // fprintf(stdout, "match: %lu at field: %lu\n", value, field);
+                }
+            }
+        }
+
+        for (size_t l = 0; l < sz_ranges; ++l) {
+            // fprintf(stdout, "match[%lu] = %lu ", l, match[l]);
+            if (match[l] == max_columns && !found[l]) {
+                // putchar('<');
+                result[i][l]++;
+                found[l] = 0;
+                // break;
+            }
+            // putchar('\n');
+        }
+
+        // reset
+        for (size_t i = 0; i < max_rows; ++i) match[i] = 0;
+    }
+
+    // now we reorder the matrix depending on result or copy on a new matrix
+    size_t matrix2[max_rows][max_rows];
+
+    for (size_t i = 0; i < max_rows; ++i) {
+        for (size_t j = 0; j < max_rows; ++j) {
+            matrix2[i][j] = 0;
+        }
+    }
+
+    // traverse raw result and sort the rows depending of number of matches
+    // the goal is discard duplicated matches like the simple example of
+    // part two
+    // Save the index!
+    size_t index[max_rows];
+    size_t sum = 0;
+    for (size_t i = 0; i < max_rows; ++i) {
+        fprintf(stdout, "%lu:\t", i);
+        for (size_t j = 0; j < max_rows; ++j) {
+            if (result[i][j])
+                sum++;
+            if (result[i][j] > 0) {
+                // fprintf(stdout, "*", result[i][j]);
+                fprintf(stdout, "*");
+            } else {
+                fprintf(stdout, "-");
+            }
+        }
+        index[sum - 1] = i;
+        fprintf(stdout, ": (%lu matches)", sum);
+        for (size_t k = 0; k < max_rows; ++k) {
+            matrix2[sum - 1][k] = result[i][k];
+        }
+        putchar('\n');
+        sum = 0;
+    }
+    putchar('\n');
+
+    // okay guys
+    // we sorted result's rows from one to all matches to matrix2 before
+    // let's try a simple visualization:
+
+    for (size_t i = 0; i < max_rows; ++i) {
+        fprintf(stdout, "%lu:\t", i);
+        for (size_t j = 0; j < max_rows; ++j) {
+            fprintf(stdout, "%c", matrix2[i][j] == 1 ? '*' : '-');
+        }
+        fprintf(stdout, ": (original row: %lu)", index[i]);
+        putchar('\n');
+    }
+
+    putchar('\n');
+
+
+    // traverse  matrix2 and discard duplicated matches
+    size_t found2[max_rows];
+    for (size_t i = 0; i < max_rows; ++i) found2[i] = 0;
+
+    for (size_t i = 0; i < max_rows; ++i) {
+        for (size_t j = 0; j < max_rows; ++j) {
+            if (matrix2[i][j] && !found2[j]) {
+                found2[j] = 1;
+            } else {
+                matrix2[i][j] = 0;
+            }
+        }
+    }
+
+    size_t whatColumn[max_rows];
+    size_t fuck[6];
+    size_t lenfuck = 0;
+    size_t solution = 1;
+    for (size_t i = 0; i < max_rows; ++i) {
+        fprintf(stdout, "%lu:\t", i);
+        for (size_t j = 0; j < max_rows; ++j) {
+            fprintf(stdout, "%c", matrix2[i][j] == 1 ? '*' : '-');
+            if (matrix2[i][j])
+                whatColumn[i] = j;
+        }
+        fprintf(stdout, " (index fields %lu) -> (original row %lu)", whatColumn[i], index[i]);
+        if ( whatColumn[i] < 6)
+            fuck[lenfuck++] = index[i];
+        putchar('\n');
+    }
+
+    putchar('\n');
+
+    // Okay guys... this is garbage
+    for (size_t i = 0; i < lenfuck; ++i) {
+        fprintf(stdout, "%lu ", fuck[i]);
+        solution *= myTicket[fuck[i]];
+    }
+
+    putchar('\n');
+
+    return(solution);
+}
+
+
 int main(int argc, char *argv[])
 {
     (void) argc;
     (void) argv[0];
 
-    char *input_file = "input.txt";
-    parse_input_file(input_file);
-    // fprintf(stdout, "Solution for Part One: %lu\n", solutionPartOne());
-    fprintf(stdout, "Solution for Part Two: %lu\n", solutionPartTwo());
-    return (0);
+    // initialize nearby tickets
+    for (size_t i = 0; i < 1024; ++i) {
+        for (size_t j = 0; j < 1024; ++j) {
+            nearbyTickets[i][j] = (size_t)-1;
+        }
+    }
+
+    // char *filename = "sample-input2.txt";
+    // char *filename = "tsoding.txt";
+    char *filename = "input.txt";
+    parse_input_file(filename);
+    get_data();
+
+    fprintf(stdout, "Solution for part One: %lu\n", solutionPartOne());
+    // log_data();
+    fprintf(stdout, "Solution for part Two: %lu\n", solutionPartTwo());
+
+    return(0);
 }
