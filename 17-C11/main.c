@@ -1,59 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int cycle = 0;
-int last_state[3][3];
-int new_state[3][3];
-int z = 0;
-
-void log_new_state() {
-    for (int row = 0; row < 3; ++row) {
-        for (int col = 0; col < 3; ++col) {
-            fprintf(stdout, "%c", new_state[row][col] == 1 ? '#' : '.');
-        }
-        putchar('\n');
-    }
-}
-
-void rules(int row, int col) {
-    int active_neighbors = 0;
-    for (int i = -1; i <= 1; ++i) {
-        for (int j = -1; j <= 1; ++j) {
-            int k, l;
-            if (!(i == 0 && j == 0)) { // avoid check yoursel
-                if ((k = row + i) < 0) {
-                    k = k + 3;
-                }
-
-                if ((l = col + j) < 0) {
-                    l = l + 3;
-                }
-
-                fprintf(stdout, "[%d][%d](%d) ", k, l, last_state[k][l]);
-                if (last_state[k][l] == 1) active_neighbors++;
-            } else {
-                fprintf(stdout, "[0][0](%d)", last_state[k][l]);
-            }
-        }
-        putchar('\n');
-    }
-    if (last_state[row][col] && !(active_neighbors == 2 || active_neighbors == 3))
-        new_state[row][col] = 0;
-
-    if (!last_state[row][col] && active_neighbors == 5)
-        new_state[row][col] = 1;
-}
-
-void run() {
-    for (int row = 0; row < 1; ++row) {
-        for (int col = 0; col < 1; ++col) {
-            rules(row, col);
-        }
-    }
-    cycle++;
-}
+size_t cycle = 0;
 
 
+int origin = 5;
+int offset = 1;
+int cell[32][32][32]; // z, y, x
 
 int parse_input(char *filename) {
     FILE *fp;
@@ -61,17 +14,15 @@ int parse_input(char *filename) {
         return (1);
 
     int chr;
-    int row = 0, col = 0;
+    int x = 0, y = 0, z = origin;
     while ((chr = getc(fp)) != EOF) {
         if (chr == '.')
-            last_state[row][col++] = 0;
-
+            cell[z][y][x++] = 0;
         if (chr == '#')
-            last_state[row][col++] = 1;
-
+            cell[z][y][x++] = 1;
         if (chr == '\n') {
-            col = 0;
-            row++;
+            x = 0;
+            y++;
         }
     }
     fclose(fp);
@@ -86,11 +37,19 @@ int main(int argc, char *argv[])
 
     char *filename = "sample-input.txt";
     parse_input(filename);
-    for (int i = -12; i < 12; ++i) {
-        fprintf(stdout, "%d ", abs(i % 3));
+
+    // print
+    for (int depth = origin - offset; depth <= origin + offset; ++depth) {
+        fprintf(stdout, "z=%d\n", depth - origin);
+        for (int height = 0; height < 3; ++height) {
+            for (int width = 0; width < 3; ++width) {
+                fprintf(stdout, "%c", cell[depth][height][width] ? '#' : '.');
+            }
+            putchar('\n');
+        }
+        putchar('\n');
     }
-    // run();
-    // log_new_state();
+
 
     return (0);
 }
